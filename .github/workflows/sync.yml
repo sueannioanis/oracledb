@@ -16,7 +16,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote add upstream https://github.com/ORIGINAL-OWNER/ORIGINAL-REPOSITORY.git
+          git remote add upstream https://github.com/sueannioanis/oracledb.git
           git fetch upstream
           git checkout main
           git merge upstream/main
