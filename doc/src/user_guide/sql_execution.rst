@@ -72,6 +72,9 @@ This is correct:
     ``await connection.execute (`SELECT * FROM mytab WHERE mycol = :mybv`,
     [101])``.
 
+For information on validating SQL table names, column names, or identifiers
+that are provided dynamically, see :ref:`buildandvalidatesql`.
+
 .. _select:
 
 SELECT Statements
@@ -624,10 +627,7 @@ case-insensitive column names. You can use a
 :ref:`fetch type handler <columncase>` to change the column names to
 lowercase.
 
-The :attr:`oracledb.extendedMetadata` property and the
-:meth:`connection.execute()` option
-:ref:`extendedMetaData <propexecextendedmetadata>` are desupported. Extended
-metadata is now always returned.
+Extended metadata is now always returned.
 
 .. _changefetcheddata:
 
@@ -668,12 +668,12 @@ Using Fetch Type Handlers
 Other than common data type conversions using the global ``fetchAsString`` and
 ``fetchAsBuffer`` settings, you may need more flexibility to modify the
 fetched column data. In such cases, a fetch type handler introduced in
-node-oracledb 6.0 can be specified for queries. The fetch type handler
-asks the database to perform a conversion of the column data type to the
-desired data type before the data is returned from the database to
-node-oracledb. If the database does not support the conversion of data types,
-an error will be returned. Also, fetch type handlers allow you to change
-column names, for example, to lowercase.
+node-oracledb 6.0 can be specified for queries. The fetch type handler asks
+the database to perform a conversion of the column data type to the desired
+data type before the data is returned from the database to node-oracledb.
+If the database does not support the conversion of data types, an error will
+be returned. Also, fetch type handlers allow you to change column names,
+for example, to lowercase.
 The fetch type handler functionality replaces the deprecated
 :ref:`fetchInfo <propexecfetchinfo>` property.
 
@@ -697,8 +697,8 @@ arguments. The first object argument contains the ``annotations``,
 ``domainSchema``, ``isJson``, ``name``, ``nullable``, ``precision``, and
 ``scale`` attributes. See :attr:`oracledb.fetchTypeHandler` for more
 information on these attributes. The second object argument contains the
-:ref:`metadata <execmetadata>` list of all the result columns fetched using the
-SELECT statement.
+:ref:`metadata <execmetadata>` list of all the result columns fetched using
+the SELECT statement.
 
 The function is called once for each column that is going to be fetched. The
 function is expected to return either nothing or an object containing:
@@ -809,11 +809,10 @@ Using Fetch Type Handlers with Converters
 
 Node-oracledb "converters" can be used with fetch type handlers to change the
 returned data. The converter is a function which accepts the value that will be
-returned by :meth:`connection.execute()` for a particular row and column
-and returns the value that will actually be returned by
-``connection.execute()``. The converter function runs within the
-:meth:`connection.execute()` or :meth:`resultSet.getRows()` functions
-and can make database calls.
+returned by :meth:`connection.execute()` for a particular row and column and
+returns the value that will actually be returned by ``connection.execute()``.
+The converter function runs within the :meth:`connection.execute()` or the
+:meth:`resultSet.getRows()` methods and can make database calls.
 
 For example:
 
@@ -1020,13 +1019,55 @@ fractional part when fetched.
 
     Oracle Database DATE and TIMESTAMP types are now returned as JavaScript
     date types in the application's timezone, and no longer fetched or bound as
-    TIMESTAMP WITH LOCAL TIME ZONE.  The connection session time zone no longer
-    impacts these types.  This behavior aligns with other Oracle Database tools
-    and drivers. Handling of TIMESTAMP WITH TIMEZONE and TIMESTAMP WITH LOCAL
-    TIMEZONE has not changed.  For DATE and TIMESTAMP compatibility with
-    node-oracledb 5.5, use a :ref:`fetch type handler <fetchtypehandler>` and
-    set the return ``type`` attribute to ``oracledb.DB_TYPE_TIMESTAMP_LTZ``.
-    Also use a similar type when binding if compatibility is needed.
+    TIMESTAMP WITH LOCAL TIME ZONE. The connection session time zone no longer
+    impacts these types. This behavior aligns with other Oracle Database tools
+    and drivers. For DATE and TIMESTAMP compatibility with node-oracledb 5.5,
+    use a :ref:`fetch type handler <fetchtypehandler>` and set the return
+    ``type`` attribute to ``oracledb.DB_TYPE_TIMESTAMP_LTZ``. Also, use a
+    similar type when binding if compatibility is needed.
+
+    Handling of TIMESTAMP WITH TIME ZONE has not changed. TIMESTAMP WITH LOCAL
+    TIME ZONE columns continue to use the corresponding database types, but
+    their JavaScript Date representation can differ from the node-oracledb 5.5
+    behavior. To return TIMESTAMP WITH LOCAL TIME ZONE values in a specific
+    time zone representation, use a
+    :ref:`fetch type handler <fetchtypehandler>` with a
+    :ref:`converter <converterfunc>` as shown in the
+    :ref:`example <timestampconvexample>` below.
+
+.. _timestampconvexample:
+
+An example of using a fetch type handler with a converter to return TIMESTAMP
+WITH LOCAL TIME ZONE values using a America/New York time zone representation
+is shown below:
+
+.. code-block:: javascript
+
+    oracledb.fetchTypeHandler = function(metaData) {
+      if (metaData.dbType === oracledb.DB_TYPE_TIMESTAMP_LTZ) {
+        const myConverter = (val) => {
+          if (val !== null) {
+            val = val.toLocaleString('en-US', {
+              timeZone: 'America/New_York'
+            });
+          }
+          return val;
+        };
+
+        return { converter: myConverter };
+      }
+    };
+
+The fetch type handler is called once for each column in the SELECT query. For
+each TIMESTAMP WITH LOCAL TIME ZONE column, the database returns the value as
+a JavaScript Date. The converter is then called in Node.js for each of those
+values, allowing the application to format the value in the desired time zone.
+Using it in a query:
+
+.. code-block:: javascript
+
+    const result = await connection.execute(`SELECT * FROM time_table`);
+    console.log(result.rows);
 
 To make applications more portable, it is recommended to set the client system
 time zone (for example, the ``TZ`` environment variable or the Windows
@@ -1480,6 +1521,208 @@ To get the automatically inserted identifier in node-oracledb, use a
 Instead of using application generated identifiers, you may prefer to
 use ROWIDs, see :ref:`lastRowid <execlastrowid>`.
 
+.. _buildandvalidatesql:
+
+Dynamic SQL Construction and Validation
+=======================================
+
+When dynamically building SQL statements, you can use the methods
+:meth:`oracledb.enquoteName()`, :meth:`oracledb.enquoteLiteral()`,
+:meth:`oracledb.isQualifiedSqlName()`, and :meth:`oracledb.isSimpleSqlName()`
+to help prevent SQL injection. These methods are detailed in the subsequent
+sections.
+
+.. IMPORTANT::
+
+    When constructing SQL statements dynamically, do not concatenate or
+    interpolate data values into SQL text. Instead, use bind variables for all
+    data values. See :ref:`bind`.
+
+.. _validatesimplesql:
+
+Validating Simple SQL Names
+---------------------------
+
+The method :meth:`oracledb.isSimpleSqlName()` checks whether the input value
+is a valid simple SQL name. This method first trims any leading and trailing
+whitespaces from the input string, and then validates the trimmed value.
+
+If the input value is not quoted, the first character must be a Unicode letter
+and the remaining characters may be Unicode letters, Unicode combining marks,
+Unicode digits, or the characters '_', '$', and '#'. A quoted name may contain
+any characters except embedded double quotes and the NUL character. Quoted
+names must not be empty.
+
+Some valid and invalid SQL names are shown in the following example:
+
+.. code-block:: javascript
+
+    // Valid Simple SQL Names
+    console.log(oracledb.isSimpleSqlName("employee_id")); // true
+    console.log(oracledb.isSimpleSqlName("Salary"));      // true
+    console.log(oracledb.isSimpleSqlName("dept2"));       // true
+    console.log(oracledb.isSimpleSqlName(' "EMP" '));     // true (contains whitespace outside the quotes)
+
+    // Invalid Simple SQL Names
+    console.log(oracledb.isSimpleSqlName("123column"));  // false (starts with a number)
+    console.log(oracledb.isSimpleSqlName("first-name")); // false (contains hyphen)
+    console.log(oracledb.isSimpleSqlName("first name")); // false (contains space)
+    console.log(oracledb.isSimpleSqlName(""));           // false (empty string)
+    console.log(oracledb.isSimpleSqlName(' "EMP"X '));   // false (extra characters outside quotes)
+
+.. _validatequalifiedsql:
+
+Validating Qualified SQL Names
+------------------------------
+
+The :meth:`oracledb.isQualifiedSqlName()` method checks whether the input
+value contains a valid qualified SQL name. This method first trims any
+leading and trailing whitespaces from the input string, and then validates the
+trimmed value.
+
+The name must be one or more simple SQL names separated by periods, with
+optional whitespace around the periods. One optional '@' database link section
+is allowed, optional whitespace is also allowed around '@', and the database
+link name can itself be dotted.
+
+Some valid and invalid SQL names are shown in the following example:
+
+.. code-block:: javascript
+
+    // Valid Qualified SQL Names
+    console.log(oracledb.isQualifiedSqlName("HR.employees"));     // true
+    console.log(oracledb.isQualifiedSqlName("SALES.Order"));      // true
+    console.log(oracledb.isQualifiedSqlName("MYSCHEMA.MyTable")); // true
+    console.log(oracledb.isQualifiedSqlName("HR.employees@db1")); // true
+
+    // Invalid Qualified SQL Names
+    console.log(oracledb.isQualifiedSqlName("HR..Employees"));  // false (contains double dot)
+    console.log(oracledb.isQualifiedSqlName("HR.123Orders"));   // false (object name starts with number)
+    console.log(oracledb.isQualifiedSqlName("HR.Orders-2026")); // false (contains hyphen)
+
+.. _quoteidentifiers:
+
+Quoting SQL Identifiers
+-----------------------
+
+The :meth:`oracledb.enquoteName()` method is used to safely quote SQL
+identifiers such as table names or column names. It can be used when you need
+to dynamically include identifiers in your SQL statement. For example, if your
+application allows users to provide an arbitrary column name to filter query
+results, you could use :meth:`~oracledb.enquoteName()` to quote the supplied
+name. For the data value itself, you would continue to use the
+:ref:`bind variable <bind>` syntax. For example:
+
+.. code-block:: javascript
+
+    // User input
+    const col = "DEPARTMENT_NAME";
+    const val = "SALES";
+
+    const safeCol = oracledb.enquoteName(col);
+
+    const sql = `SELECT * FROM departments WHERE ${safeCol} = :1`;
+    const result = await connection.execute(sql, [val]);
+
+The default value of the ``capitalize`` parameter in
+:meth:`~oracledb.enquoteName()` is *true*. So, by default alphabetic
+characters are converted to uppercase before quoting in
+:meth:`~oracledb.enquoteName()`. If you set the ``capitalize`` parameter to
+*false*, then the case of the input value is preserved. For example:
+
+.. code-block:: javascript
+
+    oracledb.enquoteName("Department_Name") // Returns "DEPARTMENT_NAME"
+    oracledb.enquoteName("Department_Name", false) // Returns "Department_Name"
+
+The following example shows how a user input that is not validated alters the
+intended query from the EMPLOYEES table, and instead returns rows from the
+table DEPARTMENTS:
+
+.. code-block:: javascript
+
+    const col = "* FROM departments --"  // SQL Injection
+
+    const sql = `SELECT ${col} FROM employees`;
+    console.log(sql);
+
+    const result = await connection.execute(sql);
+
+    for (const row of result.rows) {
+      console.log(row);
+    }
+
+This shows the SQL statement has been altered unexpectedly::
+
+    SELECT * FROM departments -- FROM employees
+
+Records are shown from a table that the user should not be accessing::
+
+    (10, 'ADMINISTRATION', 200, 1700)
+    (20, 'MARKETING', 201, 1800)
+    (30, 'PURCHASING', 114, 1700)
+    (40, 'HUMAN RESOURCES', 203, 2400)
+
+The SQL Injection can be prevented by using :meth:`oracledb.enquoteName()` as
+shown below:
+
+.. code-block:: javascript
+
+    const col = "* FROM departments --"  // SQL Injection
+    const safeCol = oracledb.enquoteName(col);
+
+    const sql = `SELECT ${safeCol} FROM employees`;
+    console.log(sql);
+
+    const result = await connection.execute(sql);
+
+    for (const row of result.rows) {
+      console.log(row);
+    }
+
+This shows the SQL statement is now::
+
+    SELECT "* FROM DEPARTMENTS --" FROM employees
+
+which throws an error::
+
+    ORA-00904: "* FROM DEPARTMENTS --": invalid identifier
+
+Note that :meth:`oracledb.enquoteName()` rejects any input containing a double
+quote and returns the error ``NJS-183: invalid SQL name: embedded double
+quotes are not allowed``. The input is quoted as a single identifier, and the
+SQL name syntax is not validated.
+
+Applications can first check whether the input value is a valid SQL name using
+:meth:`oracledb.isSimpleSqlName()` or :meth:`oracledb.isQualifiedSqlName()`.
+If not valid, then use :meth:`oracledb.enquoteName()` to enclose the input
+value in quotes as a single identifier.
+
+.. _quoteliterals:
+
+Quoting Literals
+----------------
+
+When including literal values dynamically in SQL statements, use
+:meth:`oracledb.enquoteLiteral()` to enclose the value in single quotes and
+double any embedded single quotes. Note that quoting literals should only be
+done when :ref:`bind variables <bind>` cannot be used. For example:
+
+.. code-block:: javascript
+
+    const val = oracledb.enquoteLiteral("O'Reilly");
+
+    // Build SQL using the quoted literal
+    const sql = `SELECT * FROM EMPLOYEES WHERE LAST_NAME = ${val}`;
+    console.log(sql);
+
+This prints::
+
+    SELECT * FROM EMPLOYEES WHERE LAST_NAME = 'O''Reilly'
+
+Note how the single quote in "O'Reilly" is automatically escaped (''), so the
+SQL remains valid.
+
 .. _cursors1000:
 
 Cursor Management
@@ -1519,8 +1762,8 @@ here are possible solutions:
 
    Incorrectly sizing the statement cache will reduce application efficiency.
 
-   To help set the cache size, you can turn on auto-tuning with Oracle Client
-   libraries 12.1 or later, using an :ref:`oraaccess.xml <oraaccess>` file.
+   To help set the cache size in nocde-oracledb Thick mode, you can turn on
+   auto-tuning by using an :ref:`oraaccess.xml <oraaccess>` file.
 
    For more information, see the :ref:`Statement Caching <stmtcache>`
    documentation.
@@ -1549,4 +1792,4 @@ here are possible solutions:
    when statements are internally released. The majority of your
    connections may use less than *open_cursors* cursors, but if one
    connection is at the limit and it then tries to execute a new
-   statement, that connection will get *ORA-1000*.
+   statement, that connection will get an *ORA-1000* error.

@@ -10,11 +10,11 @@ Oracle Client libraries. The database can be on the same machine as Node.js, or
 it can be remote.
 
 Pre-built 'Thick' mode binaries for common architectures (Windows 64-bit, Linux
-x86_64, Linux ARM (aarch64), macOS Intel, and macOS ARM64) are included in the
-node-oracledb installation as a convenience. Thick mode provides some
+x86_64, Linux ARM (aarch64), and macOS ARM64) are included in the node-oracledb
+installation as a convenience. Thick mode provides some
 :ref:`additional functionality <featuresummary>`. To use Thick mode, Oracle
-Client libraries version 11.2, or later, need to be manually installed.
-Node-oracledb Thick mode can connect to Oracle Database 9.2 or later,
+Client libraries version 19, or later, need to be manually installed.
+Node-oracledb Thick mode can connect to Oracle Database 11.2 or later,
 depending on the Oracle Client library version. Note the operating systems and
 versions of Node.js that the pre-built node-oracledb binaries are compatible
 with will change as the Node.js project evolves. The binaries are not
@@ -127,9 +127,9 @@ Example: Simple Oracle Document Access (SODA) in Node.js
 --------------------------------------------------------
 
 Node-oracledb’s :ref:`SODA API <sodaoverview>` can be used for document-style
-access with Oracle Database 18 and above when node-oracledb Thick mode uses
-Oracle Client 18.5 or Oracle Client 19.3 (or later) libraries.  Users require
-the database CREATE TABLE privilege and the SODA_APP role.
+access with Oracle Database 18 and later when node-oracledb Thick mode uses
+Oracle Client 19.3 (or later) libraries.  Users require the database CREATE
+TABLE privilege and the SODA_APP role.
 
 .. code-block:: javascript
 
@@ -139,9 +139,9 @@ the database CREATE TABLE privilege and the SODA_APP role.
 
     let clientOpts = {};
     if (process.platform === 'win32') {                                   // Windows
-        clientOpts = { libDir: 'C:\\oracle\\instantclient_19_18' };
-    } else if (process.platform === 'darwin' && process.arch === 'x64') { // macOS Intel
-        clientOpts = { libDir: process.env.HOME + '/Downloads/instantclient_19_8' };
+        clientOpts = { libDir: 'C:\\oracle\\instantclient_23_5' };
+    } else if (process.platform === 'darwin' && process.arch === 'arm64') { // macOS ARM64
+        clientOpts = { libDir: process.env.HOME + '/Downloads/instantclient_23_3' };
     } // else on other platforms the system library search path
       // must always be set before Node.js is started.
 
@@ -193,7 +193,7 @@ the Oracle Database and does not require Oracle Client libraries. Connections
 in this mode can be made to Oracle Database 12.1 or later.
 
 When node-oracledb is in :ref:`Thick mode <enablingthick>` using Oracle Client
-libraries, connections can be made to Oracle Database 9.2, or later, depending
+libraries, connections can be made to Oracle Database 11.2, or later, depending
 on the Oracle Client library version.
 
 Oracle's standard client-server network interoperability allows connections
@@ -204,9 +204,9 @@ summary:
 
 - Oracle Client 23 can connect to Oracle Database 19 or later
 - Oracle Client 21 can connect to Oracle Database 12.1 or later
-- Oracle Client 19, 18, and 12.2 can connect to Oracle Database 11.2 or later
-- Oracle Client 12.1 can connect to Oracle Database 10.2 or later
-- Oracle Client 11.2 can connect to Oracle Database 9.2 or later
+- Oracle Client 19 can connect to Oracle Database 11.2 or later
+
+Previous versions of node-oracledb supported older Oracle Client versions.
 
 Not all features are available in all versions or driver modes. Any attempt to
 use Oracle features that are not supported by a particular mode or client
@@ -253,10 +253,9 @@ To use node-oracledb, you need:
   - from those included in Oracle Database if Node.js is on the same machine as
     the database
 
-  Oracle Client libraries versions 23, 21, 19, 18, 12, and 11.2 can be used
-  where available on Linux, Windows, and macOS. Oracle's standard
-  client-server version interoperability allows connection to both older and
-  newer databases.
+  Oracle Client libraries versions 23, 21, and 19 can be used where available
+  on Linux, Windows, and macOS. Oracle's standard client-server version
+  interoperability allows connection to both older and newer databases.
 
   Run ``node -p "process.arch"`` to identify the Node.js architecture so that
   you can install the appropriate 64-bit or 32-bit Oracle Client libraries.
@@ -289,8 +288,8 @@ Install Node.js
 Install node-oracledb
 ---------------------
 
-1. Install node-oracledb using the ``npm`` package manager, which is included
-   in Node.js:
+1. In a terminal window, install node-oracledb using the ``npm`` package
+   manager, which is included in Node.js:
 
    .. code-block:: shell
 
@@ -359,13 +358,13 @@ Questions can be asked as `GitHub Discussions
 Install Oracle Client to use Thick Mode
 ---------------------------------------
 
-By default, the node-oracledb driver is a pure JavaScript module that runs in a
-Thin mode connecting directly to Oracle Database so no further installation
+By default, the node-oracledb driver is a pure JavaScript module that runs in
+a Thin mode connecting directly to Oracle Database so no further installation
 steps are required.  However, to use additional node-oracledb features
 available in :ref:`Thick mode <featuresummary>`, you need to install Oracle
-Client libraries.  Oracle Client versions 23, 21, 19, 18, 12, and 11.2 can be
-used. Thick mode uses a binary add-on installed with node-oracledb that loads
-these Oracle Client libraries.
+Client libraries.  Oracle Client versions 23, 21, and 19 can be used. Thick
+mode uses a binary add-on installed with node-oracledb that loads these Oracle
+Client libraries.
 
 Depending on whether your database is on the same machine as Node.js or
 remote, you may need to adjust the Oracle Client installation instructions:
@@ -380,7 +379,7 @@ remote, you may need to adjust the Oracle Client installation instructions:
   - Or uses RPM packages, then follow the instructions in :ref:`instrpm`
 
 - Alternatively, use the client libraries already available in a locally
-  installed database such as the free `Oracle Database Free <https://www.
+  installed database such as the free `Oracle AI Database Free <https://www.
   oracle.com/database/technologies/free-downloads.html>`_ release
   (previously known as Oracle Database Express Edition ("XE")) and follow the
   instructions in :ref:`instoh`.
@@ -429,8 +428,8 @@ Follow these steps if your database is on a remote machine and either:
 
 To use node-oracledb Thick mode with Oracle Instant Client zip files:
 
-1. Download an Oracle 23, 21, 19, 18, 12, or 11.2 "Basic" or "Basic Light" zip
-   file matching your architecture:
+1. Download an Oracle 23, 21, or 19 "Basic" or "Basic Light" zip file matching
+   your architecture:
 
    - `Linux 64-bit (x86-64) <https://www.oracle.com/database/technologies/
      instant-client/linux-x86-64-downloads.html>`__
@@ -442,10 +441,10 @@ To use node-oracledb Thick mode with Oracle Instant Client zip files:
    later. Oracle Instant Client 19 will connect to Oracle Database 11.2 or
    later.
 
-   Oracle Database versions 23 and 19 are Long Term Support Releases. Note
-   32-bit clients are not available on any platform for Oracle Database
-   version 23, however you can use older 32-bit clients to connect to this
-   version of the database.
+   Oracle Database 26ai and 19c are Long Term Support Releases. Note 32-bit
+   clients are not available on any platform for Oracle Database 26ai, however
+   you can use older 32-bit clients to connect to this version of the
+   database.
 
    It is recommended to keep up to date with the latest Oracle Instant Client
    release updates of your desired major version.
@@ -457,8 +456,7 @@ To use node-oracledb Thick mode with Oracle Instant Client zip files:
 
         mkdir -p /opt/oracle
         cd /opt/oracle
-        wget https://download.oracle.com/otn_software/linux/instantclient/instantclient-basic-linuxx64.zip
-        unzip instantclient-basic-linuxx64.zip
+        unzip instantclient-basic-linux.x64-23.26.1.0.0.zip
 
    Note: OS restrictions may prevent the opening of Oracle Client libraries
    installed in unsafe paths, such as from a user directory. You may need to
@@ -489,12 +487,12 @@ To use node-oracledb Thick mode with Oracle Instant Client zip files:
 
 5. If there is no other Oracle software on the machine that will be impacted,
    then permanently add Instant Client to the run-time link path. For example,
-   if the Basic package is unzipped to ``/opt/oracle/instantclient_21_6``,
+   if the Basic package is unzipped to ``/opt/oracle/instantclient_23_26``,
    then run the following using sudo or as the root user:
 
    .. code-block:: shell
 
-        sudo sh -c "echo /opt/oracle/instantclient_19_28 > /etc/ld.so.conf.d/oracle-instantclient.conf"
+        sudo sh -c "echo /opt/oracle/instantclient_23_26 > /etc/ld.so.conf.d/oracle-instantclient.conf"
         sudo ldconfig
 
    Alternatively, set the environment variable ``LD_LIBRARY_PATH`` to the
@@ -502,7 +500,7 @@ To use node-oracledb Thick mode with Oracle Instant Client zip files:
 
    .. code-block:: shell
 
-        export LD_LIBRARY_PATH=/opt/oracle/instantclient_19_28:$LD_LIBRARY_PATH
+        export LD_LIBRARY_PATH=/opt/oracle/instantclient_23_26:$LD_LIBRARY_PATH
 
    Make sure this is set in each shell that invokes Node.js. Web servers and
    other daemons commonly reset environment variables so using ``ldconfig`` is
@@ -543,8 +541,8 @@ To use node-oracledb with Oracle Instant Client RPMs:
 
 1a. Download and install Oracle Instant Client "Basic" or "Basic Light".
 
-    Download an Oracle 23, 21, 19, 18, 12, or 11.2 "Basic" or "Basic Light" RPM
-    matching your architecture:
+    Download an Oracle 23, 21, or 19 "Basic" or "Basic Light" RPM matching
+    your architecture:
 
     - `Linux 64-bit (x86-64) <https://www.oracle.com/database/technologies/
       instant-client/linux-x86-64-downloads.html>`__
@@ -562,19 +560,29 @@ To use node-oracledb with Oracle Instant Client RPMs:
     It is recommended to keep up to date with the latest Oracle Instant Client
     release updates of your desired major version.
 
-    Oracle Database versions 23 and 19 are Long Term Support Releases. Oracle
+    Oracle Database 26ai and 19c are Long Term Support Releases. Oracle
     Instant Client version 23 will connect to Oracle Database 19 or later.
     Oracle Instant Client version 19 will connect to Oracle Database 11.2 or
     later.
 
     Note 32-bit clients are not available on any platform for Oracle Database
-    version 23, however you can use older 32-bit clients to connect to this
-    version of the database.
+    26ai, however you can use older 32-bit clients to connect to this version
+    of the database.
 
 1b. Alternatively, install Instant Client from Oracle's yum server.
 
     See `Oracle Database Instant Client for Oracle Linux <https://yum.oracle.
     com/oracle-instant-client.html>`__ instructions. The repositories are:
+
+    - Instant Client version 23 on Oracle Linux 10
+
+      - `Instant Client 23 for Oracle Linux 10 (x86-64) <https://yum.oracle.com
+        /repo/OracleLinux/OL10/oracle/instantclient23/x86_64/index.html>`__
+
+      .. code-block:: shell
+
+          sudo dnf install oracle-instantclient-release-26ai-el10
+          sudo dnf install oracle-instantclient-basic
 
     - Instant Client version 23 on Oracle Linux 9
 
@@ -586,7 +594,7 @@ To use node-oracledb with Oracle Instant Client RPMs:
 
       .. code-block:: shell
 
-          sudo dnf install oracle-instantclient-release-23ai-el9
+          sudo dnf install oracle-instantclient-release-26ai-el9
           sudo dnf install oracle-instantclient-basic
 
     - Instant Client version 19 on Oracle Linux 9
@@ -612,7 +620,7 @@ To use node-oracledb with Oracle Instant Client RPMs:
 
       .. code-block:: shell
 
-          sudo dnf install oracle-instantclient-release-23ai-el8
+          sudo dnf install oracle-instantclient-release-26ai-el8
           sudo dnf install oracle-instantclient-basic
 
     - Instant Client version 19 on Oracle Linux 8
@@ -639,23 +647,6 @@ To use node-oracledb with Oracle Instant Client RPMs:
 3. For Oracle Instant Client 19 or later, the system library search path is
    automatically configured during installation.
 
-   For older versions, if there is no other Oracle software on the machine
-   that will be impacted, then permanently add Instant Client to the run-time
-   link path. For example, with sudo or as the root user:
-
-   .. code-block:: shell
-
-       sudo sh -c "echo /usr/lib/oracle/18.5/client64/lib > /etc/ld.so.conf.d/oracle-instantclient.conf"
-       sudo ldconfig
-
-   Alternatively, for version 18 and earlier, every shell running Node.js
-   will need to have the environment variable ``LD_LIBRARY_PATH`` set to the
-   appropriate directory for the Instant Client version. For example:
-
-   .. code-block:: shell
-
-       export LD_LIBRARY_PATH=/usr/lib/oracle/18.5/client64/lib:$LD_LIBRARY_PATH
-
    Web servers and other daemons commonly reset environment variables so using
    ``ldconfig`` is generally preferred instead.
 
@@ -673,21 +664,21 @@ Local Database or Full Client
 Follow these steps if you are running Node.js on the same machine where
 Oracle Database is installed.
 
-Node-oracledb applications can use Oracle Client 23, 21, 19, 18, 12, or 11.2
-libraries from a local Oracle Database or full Oracle Client installation
-(such as installed by Oracle's GUI installer).
+Node-oracledb applications can use Oracle Client 23, 21, and 19 libraries from
+a local Oracle Database or full Oracle Client installation (such as installed
+by Oracle's GUI installer).
 
 The libraries must be either 32-bit or 64-bit, matching your Python
 architecture. Note 32-bit clients are not available on any platform for Oracle
-Database version 23, however you can use older 32-bit clients to connect to
-this version of the database.
+Database 26ai, however you can use older 32-bit clients to connect to this
+version of the database.
 
 The ``ORACLE_HOME`` can be either a database home or a full Oracle
 client installation installed with Oracle’s ``runInstaller``.
 
-For easy development, `Oracle Database Free <https://www.oracle.com/database/
-free/>`__ is available on Linux. Applications developed with this database may
-be immediately used with other editions of the Oracle Database.
+For easy development, `Oracle AI Database Free <https://www.oracle.com/
+database/free/>`__ is available on Linux. Applications developed with this
+database may be immediately used with other editions of the Oracle Database.
 
 To use node-oracledb with local database or full client:
 
@@ -754,8 +745,8 @@ Download the `Node.js package <https://nodejs.org>`__ for macOS and install it.
 Install node-oracledb
 ---------------------
 
-1. Install node-oracledb using the ``npm`` package manager, which is included
-   in Node.js:
+1. In a terminal window, install node-oracledb using the ``npm`` package
+   manager, which is included in Node.js:
 
    .. code-block:: shell
 
@@ -825,8 +816,10 @@ Thin mode connecting directly to Oracle Database so no further installation
 steps are required.  However, to use additional node-oracledb features
 available in :ref:`Thick mode <featuresummary>`, you need to install Oracle
 Client libraries.  Thick mode uses a binary add-on installed with node-oracledb
-that loads these libraries.  This binary is available for macOS Intel and
-macOS ARM64 (from node-oracledb version 6.6 onwards).
+that loads these libraries.  This binary is available for macOS ARM64 (from
+node-oracledb version 6.6 onwards).  The binary for macOS Intel x86-64 has
+been removed from the node-oracledb installation from node-oracledb 7.0
+version onwards.
 
 You can get the libraries from either the Oracle Instant Client **Basic** or
 **Basic Light** package.  The steps below show installing **Basic**.
@@ -987,10 +980,8 @@ Node.js and npm directories to the path is selected.
 Install node-oracledb
 ---------------------
 
-1. Open a terminal window.
-
-2. Install node-oracledb using the ``npm`` package manager, which is
-   included in Node.js:
+1. In a terminal window, install node-oracledb using the ``npm`` package
+   manager, which is included in Node.js:
 
    .. code-block:: shell
 
@@ -1003,7 +994,7 @@ Install node-oracledb
 
         npm config set proxy http://myproxy.example.com:80/
 
-3. You can now run applications.
+2. You can now run applications.
 
    Runnable samples are available from GitHub. To try them follow these steps:
 
@@ -1059,9 +1050,8 @@ By default, the node-oracledb driver is a pure JavaScript module that runs in a
 Thin mode connecting directly to Oracle Database so no further installation
 steps are required.  However, to use additional features available in
 :ref:`Thick mode <featuresummary>` you need Oracle Client libraries
-installed. Oracle Client versions 21, 19, 18, 12, and 11.2 can be used. Thick
-mode uses a binary add-on installed with node-oracledb that loads these
-libraries.
+installed. Oracle Client versions 23, 21, and 19 can be used. Thick mode uses
+a binary add-on installed with node-oracledb that loads these libraries.
 
 Depending on whether your database is on the same machine as Node.js or
 remote, you may need to adjust the Oracle Client installation instructions:
@@ -1117,8 +1107,8 @@ To use node-oracledb in Thick mode with Oracle Instant Client ZIP files:
    -client/winx64-64-downloads.html>`__.
 
 2. Unzip the ZIP file into a directory that is accessible to your application.
-   For example, unzip ``instantclient-basic-windows.x64-19.22.0.0.0dbru.zip``
-   to ``C:\oracle\instantclient_19_22``.
+   For example, unzip ``instantclient-basic-windows.x64-23.26.1.0.0.zip`` to
+   ``C:\oracle\instantclient_23_26``..
 
 3. Oracle Instant Client libraries require a Visual Studio redistributable
    with a 64-bit or 32-bit architecture to match Instant Client's architecture.
@@ -1126,23 +1116,16 @@ To use node-oracledb in Thick mode with Oracle Instant Client ZIP files:
 
    .. _winredists:
 
+   - For Instant Client 23, install the latest `Visual C++ Redistributable
+     package common for Visual Studio 2015, 2017, 2019, and 2022
+     <https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?
+     view=msvc-170>`__
    - For Oracle Instant Client 21, install `Visual Studio 2019 Redistributable
      <https://docs.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?
      view=msvc-170>`__ or later
    - For Oracle Instant Client 19, install `Visual Studio 2017 Redistributable
      <https://docs.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?
      view=msvc-170>`__
-   - For Oracle Instant Client 18 and 12.2, install the `Visual Studio 2013
-     Redistributable <https://docs.microsoft.com/en-US/cpp/windows/latest-
-     supported-vc-redist?view=msvc-170#visual-studio-2013-vc-120>`__
-   - For Oracle Instant Client 12.1, install `Visual Studio 2010
-     Redistributable <https://docs.microsoft.com/en-US/cpp/windows/latest-
-     supported-vc-redist?view=msvc-170#visual-studio-2010-vc-100-sp1-no-longer
-     -supported>`__
-   - For Oracle Instant Client 11.2, install `Visual Studio 2005
-     Redistributable <https://docs.microsoft.com/en-US/cpp/windows/latest-
-     supported-vc-redist?view=msvc-170#visual-studio-2005-vc-80-sp1-no-longer-
-     supported>`__
 
     You can also find out the version required by locating the library
     ``OCI.DLL`` and running:
@@ -1180,16 +1163,15 @@ Local Database or Full Client
 Follow these steps if you are running Node.js on the same machine where
 Oracle Database is installed.
 
-Node-oracledb Thick mode applications can use Oracle Client 21, 19, 18, 12,
-or 11.2 libraries from a local Oracle Database or full Oracle Client (such as
+Node-oracledb Thick mode applications can use Oracle Client 23, 21, or 19
+libraries from a local Oracle Database or full Oracle Client (such as
 installed by Oracle's GUI installer).
 
 The pre-built node-oracledb binary was built with Visual Studio 2017 and
-requires the matching `redistributable
-<https://docs.microsoft.com/en-us/cpp/windows
-/latest-supported-vc-redist?view=msvc-170>`__. Ensure that ``PATH`` contains
-the correct binary directory, for example ``C:\oracle\product\12.2.0\dbhome_1\
-bin``.
+requires the matching `redistributable <https://docs.microsoft.com/en-us/cpp/
+windows/latest-supported-vc-redist?view=msvc-170>`__. Ensure that ``PATH``
+contains the correct binary directory, for example
+``C:\oracle\product\12.2.0\dbhome_1\bin``.
 
 For easy development, the free `Oracle XE <https://www.oracle.com/database
 /technologies/appdev/xe.html>`__ version of the database is available on
@@ -1219,15 +1201,15 @@ Installing node-oracledb Without Internet Access
 
 On a machine with internet access, download the node-oracledb package from
 `npm <https://www.npmjs.com/package/oracledb>`__, for example from
-`https://registry.npmjs.com/oracledb/-/oracledb-6.0.0.tgz <https://registry.
-npmjs.com/oracledb/-/oracledb-6.0.0.tgz>`__
+`https://registry.npmjs.com/oracledb/-/oracledb-7.0.0.tgz <https://registry.
+npmjs.com/oracledb/-/oracledb-7.0.0.tgz>`__.
 
 Transfer the file to the desired machine and install it, for
 example with:
 
 .. code-block:: shell
 
-    npm install your_dir_path/oracledb-6.0.0.tgz
+    npm install your_dir_path/oracledb-7.0.0.tgz
 
 Then follow the node-oracledb installation instructions for your operating
 system.
@@ -1373,7 +1355,7 @@ Alternatively, use the command:
     npm install oracle/node-oracledb#main
 
 To install from a tag, replace ``main`` with the tag name like:
-``oracle/node-oracledb#v6.0.0``.
+``oracle/node-oracledb#v7.0.0``.
 
 This will install node-oracledb and build the optional Thick mode binary.
 
@@ -1386,14 +1368,14 @@ Users without ``git`` can compile pre-bundled source code using a
 ``package.json`` dependency like::
 
     "dependencies": {
-        "oracledb": "https://github.com/oracle/node-oracledb/releases/download/v6.0.0/oracledb-src-6.0.0.tgz"
+        "oracledb": "https://github.com/oracle/node-oracledb/releases/download/v7.0.0/oracledb-src-7.0.0.tgz"
     },
 
 Or install with:
 
 .. code-block:: shell
 
-    npm install https://github.com/oracle/node-oracledb/releases/download/v6.0.0/oracledb-src-6.0.0.tgz
+    npm install https://github.com/oracle/node-oracledb/releases/download/v7.0.0/oracledb-src-7.0.0.tgz
 
 This will install node-oracledb and build the optional Thick mode binary.
 
@@ -1441,6 +1423,37 @@ Your new package can be :ref:`self-hosted <selfhost>` for use within your
 company, or it can be used directly from the file system to install
 node-oracledb.
 
+.. _installghactions:
+
+Creating a node-oracledb Package Using GitHub Actions
+-----------------------------------------------------
+
+The node-oracledb GitHub repository has a builder Action that uses GitHub
+infrastructure to build node-oracledb packages for Linux (x86_64 and ARM),
+macOS ARM, and Windows architecture with Node.js 24.
+
+1. Fork the `node-oracledb repository <https://github.com/oracle/node-oracledb
+   /fork>`__. Additionally, fork the `ODPI-C repository <https://github.com/
+   oracle/odpi/fork>`__, keeping the default name.
+
+2. In your node-oracledb fork, go to the Actions tab
+   ``https://github.com/<your name>/node-oracledb/actions/``. If this is
+   your first time using Actions, confirm enabling them.
+
+3. In the "All workflows" list on the left-hand side, select the "Build
+   node-oracledb packages" entry.
+
+4. Navigate to the "Run workflow" drop-down, select the branch to build from
+   (for example, "main"), and run the workflow.
+
+5. When the build has completed, download the "node-oracledb-package" artifact,
+   unzip it, and extract the oracledb-<version>.tgz file to any folder. Then
+   run:
+
+   .. code-block:: shell
+
+       npm install  oracledb-<version>.tgz
+
 .. _selfhost:
 
 Hosting Your Own node-oracledb Packages
@@ -1449,17 +1462,17 @@ Hosting Your Own node-oracledb Packages
 You can host node-oracledb packages locally.
 
 Download the node-oracledb package from npm, for example from
-`https://registry.npmjs.com/oracledb/-/oracledb-6.0.0.tgz <https://registry.
-npmjs.com/oracledb/-/oracledb-6.0.0.tgz>`__. Alternatively, if you want to
+`https://registry.npmjs.com/oracledb/-/oracledb-7.0.0.tgz <https://registry.
+npmjs.com/oracledb/-/oracledb-7.0.0.tgz>`__. Alternatively, if you want to
 build your own binaries and node-oracledb package, see :ref:`compilepackage`.
 
 If you make the package accessible on your local web server, for example
-at www.example.com/oracledb-6.0.0.tgz, then your ``package.json``
+at www.example.com/oracledb-7.0.0.tgz, then your ``package.json``
 would contain::
 
     . . .
     "dependencies": {
-        "oracledb": "https://www.example.com/oracledb-6.0.0.tgz"
+        "oracledb": "https://www.example.com/oracledb-7.0.0.tgz"
     },
     . . .
 
@@ -1467,7 +1480,7 @@ Or you would install with:
 
 .. code-block:: shell
 
-    npm install https://www.example.com/oracledb-6.0.0.tgz
+    npm install https://www.example.com/oracledb-7.0.0.tgz
 
 .. _docker:
 
@@ -1515,7 +1528,7 @@ Include node-oracledb as a normal dependency in your application
       "start": "node server.js"
     },
     "dependencies": {
-      "oracledb" : "^6"
+      "oracledb" : "^7"
     },
     . . .
 
@@ -1726,7 +1739,7 @@ For either Dockerfile, the ``package.json`` is::
             "myapp"
         ],
         "dependencies": {
-            "oracledb" : "^6"
+            "oracledb" : "^7"
         },
         "author": "Me",
         "license": "UPL"
@@ -1921,6 +1934,98 @@ following OCI modules:
 
 See :ref:`ocivault` for information on using this configuration provider with
 node-oracledb.
+
+.. _awss3modules:
+
+Install Modules for Amazon Simple Storage Service (S3)
+------------------------------------------------------
+
+For node-oracledb to work with Amazon S3, you must install the following AWS
+modules:
+
+1. Install the `AWS SDK for JavaScript S3 Client <https://www.npmjs.com/
+   package/@aws-sdk/client-s3>`__ module using:
+
+   .. code-block:: shell
+
+        npm install @aws-sdk/client-s3
+
+2. Install the `AWS SDK Credential Providers <https://www.npmjs.com/package/
+   @aws-sdk/credential-providers>`__ module using:
+
+   .. code-block:: shell
+
+        npm install @aws-sdk/credential-providers
+
+3. Install the `AWS Shared Configuration File Loader <https://www.npmjs.com/
+   package/@smithy/shared-ini-file-loader>`__ module using:
+
+   .. code-block:: shell
+
+        npm install @smithy/shared-ini-file-loader
+
+4. Install the `AWS Node HTTP Handler <https://www.npmjs.com/package/@smithy/
+   node-http-handler>`__ module using:
+
+   .. code-block:: shell
+
+        npm install @smithy/node-http-handler
+
+5. Install the `HTTP and HTTPS Agent <https://www.npmjs.com/package/
+   hpagent>`__ module using:
+
+   .. code-block:: shell
+
+        npm install hpagent
+
+See :ref:`awss3` for information on using this configuration provider with
+node-oracledb.
+
+.. _awssecretsmanagermodules:
+
+Install Modules for AWS Secrets Manager
+---------------------------------------
+
+For node-oracledb to work with AWS Secrets Manager, you must install the
+following AWS modules:
+
+1. Install the `AWS SDK for Client Secrets Manager <https://www.npmjs.com/
+   package/@aws-sdk/client-secrets-manager>`__ module using:
+
+   .. code-block:: shell
+
+        npm install @aws-sdk/client-secrets-manager
+
+2. Install the `AWS SDK Credential Providers <https://www.npmjs.com/package/
+   @aws-sdk/credential-providers>`__ module using:
+
+   .. code-block:: shell
+
+        npm install @aws-sdk/credential-providers
+
+3. Install the `AWS Shared Configuration File Loader <https://www.npmjs.com/
+   package/@smithy/shared-ini-file-loader>`__ module using:
+
+   .. code-block:: shell
+
+        npm install @smithy/shared-ini-file-loader
+
+5. Install the `AWS Node HTTP Handler <https://www.npmjs.com/package/@smithy/
+   node-http-handler>`__ module using:
+
+   .. code-block:: shell
+
+        npm install @smithy/node-http-handler
+
+6. Install the `HTTP and HTTPS Agent <https://www.npmjs.com/package/
+   hpagent>`__ module using:
+
+   .. code-block:: shell
+
+        npm install hpagent
+
+See :ref:`awssecretsmanager` for information on using this configuration
+provider with node-oracledb.
 
 .. _cloudnativemodules:
 

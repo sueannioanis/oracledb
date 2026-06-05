@@ -4,6 +4,74 @@
 Upgrading to the Latest node-oracledb Releases
 **********************************************
 
+.. _upgradev610v70:
+
+Upgrading from node-oracledb 6.10 to 7.0
+========================================
+
+- Review the :ref:`releasenotes` and take advantage of new features.
+
+- In node-oracledb Thin mode, you can now use Oracle AI Database 26ai
+  :ref:`Pipelining <pipelining>`.
+
+- In node-oracledb Thin mode, the new method
+  :meth:`connection.directPathLoad()` can be used to perform a
+  :ref:`direct path load <directpathloads>` into a table.
+
+- The new methods :meth:`oracledb.isSimpleSqlName()` and
+  :meth:`oracledb.isQualifiedSqlName()` can be used to validate simple and
+  qualified SQL names. To safely quote SQL literals and identifiers, you can
+  use the new methods :meth:`oracledb.enquoteLiteral()` and
+  :meth:`oracledb.enquoteName()`.
+
+- The new attribute :attr:`oracledb.thickModeDSNPassthrough` can be used to
+  control connect string parsing. When set to *false*, Thick mode behaves
+  similar to Thin mode when resolving Oracle Database Easy Connect strings,
+  processing "njs." prefixed query parameters, and applying descriptor
+  overrides. The default value *true* retains the previous Thick mode behavior
+  of passing the connect string directly down to the Oracle Client libraries.
+
+- With the new methods :meth:`connection.appContext()` and
+  :meth:`connection.clearAppContext()` methods, you can set and clear an
+  application context set on a connection.
+
+- With the new connection properties :attr:`connection.pdbName` and
+  :attr:`connection.dbUniqueName`, you can identify the pluggable database
+  name and database unique name respectively on a connection.
+
+- The new method :meth:`lob.trim()` can be used to trim a non-BFILE LOB to
+  the new specified size.
+
+- You can now use the configuration information stored in
+  :ref:`AWS Simple Storage Service (S3) <awss3>` and
+  :ref:`AWS Secrets Manager <awssecretsmanager>` Centralized Configuration
+  Providers, and connect to Oracle Database.
+
+- In :ref:`Token-based Authentication <tokenbasedauthentication>`, you can now
+  include proxy session users by supplying user name inside square brackets
+  (for example, ``user: "[session_user]"``) alongside an authentication
+  token when using external authentication.
+
+- You can now use
+  :ref:`Explicit Resource Management <explicitresourcemgmtoverview>` with
+  :ref:`Connection <connectionclass>`, :ref:`Pool <poolclass>`, and
+  :ref:`Resultset <resultsetclass>` objects.
+
+- With the new methods :meth:`connection.setEndUserSecurityContext()` and
+  :meth:`connection.clearEndUserSecurityContext()` in node-oracledb Thin mode,
+  you can set and clear an :ref:`end user security context <deepdatasecurity>`
+  on a connection.
+
+- The interval datatypes (:ref:`interval year-to-month <intervalyeartomonth>`
+  and :ref:`interval day-to-second <intervaldaytosecond>`) are now normalized
+  before being sent to the database. This prevents invalid data from being
+  stored in the database.
+
+- The support for Oracle Client libraries earlier than 19c was dropped.
+
+- Pre-built Thick mode binaries for macOS Intel x86-64 are no longer included
+  in the node-oracledb installation starting from this release.
+
 .. _upgradev69v610:
 
 Upgrading from node-oracledb 6.9 to 6.10
@@ -45,7 +113,7 @@ Upgrading from node-oracledb 6.8 to 6.9
 - With the new methods :meth:`connection.beginSessionlessTransaction()`,
   :meth:`connection.resumeSessionlessTransaction()`, and
   :meth:`connection.suspendSessionlessTransaction()`, you can use Oracle
-  Database version 23 :ref:`Sessionless Transactions <sessionlesstxns>`.
+  Database 26ai :ref:`Sessionless Transactions <sessionlesstxns>`.
 
 - With the new property :attr:`~connection.ltxid`, you can now use
   :ref:`Transaction Guard <tg>`.
@@ -224,7 +292,7 @@ Upgrading from node-oracledb 6.5 to 6.6
   and connect to Oracle Database.
 
 - You can use the new :ref:`oracledb.DB_TYPE_BFILE <oracledbconstantsdbtype>`
-  constant to represent Oracle Database version 23 data type
+  constant to represent Oracle Database 26ai data type
   :ref:`BFILE <insertbfile>`.
 
 - In node-oracledb Thin mode, you can directly specify the security
@@ -245,14 +313,14 @@ Upgrading from node-oracledb 6.4 to 6.5
 - Review the :ref:`releasenotes` and take advantage of new features.
 
 - The new :ref:`oracledb.JsonId <jsonid>` class represents JSON ID values
-  returned by SODA in Oracle Database version 23 and later in the ``_id``
-  attribute of documents stored in native collections.
+  returned by SODA in Oracle Database 26ai and later in the ``_id`` attribute
+  of documents stored in native collections.
 
 - You can now pass BigInt values as binds to :meth:`connection.execute()` and
   :meth:`connection.executeMany()`.
 
 - With the new :ref:`oracledb.DB_TYPE_VECTOR <oracledbconstantsdbtype>`
-  constant, you can now represent Oracle Database version 23 data type
+  constant, you can now represent Oracle Database 26ai data type
   :ref:`VECTOR <vectors>` with the ``vectorDimensions`` and ``vectorFormat``
   :ref:`metadata <execmetadata>` information attributes.
 
@@ -260,7 +328,7 @@ Upgrading from node-oracledb 6.4 to 6.5
   changed without restarting the pool or application using the
   :meth:`pool.reconfigure()` method.
 
-- In node-oracledb Thin mode, you can now use Oracle Database version 23's
+- In node-oracledb Thin mode, you can now use Oracle Database 26ai's
   :ref:`Implicit Connection Pooling <implicitpool>` feature with Database
   Resident Connection Pooling (DRCP) and Proxy Resident Connection Pooling
   (PRCP).
@@ -363,8 +431,8 @@ Upgrading from node-oracledb 6.2 to 6.3
   `data use case domain <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&
   id=GUID-17D3A9C6-D993-4E94-BF6B-CACA56581F41>`__ associated with the fetched
   column. Annotations and data use case domains are supported from Oracle
-  Database version 23 onwards. For node-oracledb Thick mode, Oracle Client
-  version 23 is also required.
+  Database 26ai onwards. For node-oracledb Thick mode, Oracle Client version
+  23 is also required.
 
 - In node-oracledb Thin mode, ``SYS.XMLTYPE`` data can now be
   :ref:`fetched as strings <xmltype>`.
@@ -456,7 +524,12 @@ Upgrading from node-oracledb 5.5 to 6.0
   types in the application's timezone. These database types are no longer
   fetched or bound as TIMESTAMP WITH LOCAL TIME ZONE. The connection session
   time zone does not impact these database types. There is no change to the
-  handling of TIMESTAMP WITH TIMEZONE and TIMESTAMP WITH LOCAL TIMEZONE types.
+  handling of TIMESTAMP WITH TIMEZONE. TIMESTAMP WITH LOCAL TIME ZONE columns
+  continue to use the corresponding database type, but their JavaScript Date
+  representation can differ from node-oracledb 5.5 behavior. To return
+  TIMESTAMP WITH LOCAL TIME ZONE values in a time zone representation similar
+  to node-oracledb 5.5, use a :ref:`fetch type handler <fetchtypehandler>`
+  with a converter.
 
 - The execution option attribute ``fetchInfo`` was deprecated. You can use the
   :ref:`fetchtypehandler` functionality instead which has introduced a new
@@ -468,8 +541,7 @@ Upgrading from node-oracledb 5.5 to 6.0
   :ref:`accessToken <createpoolpoolattrsaccesstoken>` instead.
 
 - Extended metadata is now always returned for queries. The
-  ``oracledb.extendedMetaData`` and equivalent
-  :ref:`execution attribute <propexecextendedmetadata>` values are
+  ``oracledb.extendedMetaData`` and equivalent execution attribute values are
   ignored.
 
 - The node-oracledb Thin and Thick modes may return different errors in some

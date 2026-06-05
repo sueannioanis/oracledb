@@ -34,10 +34,10 @@ node-oracledb Thin and Thick modes. For more details see :ref:`modediff`.
       - node-oracledb Thick Mode
     * - Oracle Client version
       - Not applicable
-      - Release 11.2 and later
+      - Release 19 and later. Older node-oracledb versions supported older Client versions.
     * - Oracle Database version
       - Release 12.1 and later
-      - Release 9.2 and later depending on the Oracle Client library version
+      - Release 11.2 and later depending on the Oracle Client library version
     * - Oracle Client/Database version interoperability
       - Not applicable - Connects directly to database version 12.1 and later
       - Yes
@@ -134,7 +134,7 @@ node-oracledb Thin and Thick modes. For more details see :ref:`modediff`.
     * - Oracle Database Dedicated Servers, Shared Servers, and Database Resident Connection Pooling (DRCP) (see :ref:`drcp`)
       - Yes
       - Yes
-    * - Oracle Database version 23 Implicit connection pooling for DRCP and PRCP (see :ref:`implicitpool`)
+    * - Oracle Database 26ai Implicit connection pooling for DRCP and PRCP (see :ref:`implicitpool`)
       - Yes
       - Yes
     * - Multitenant Databases
@@ -146,6 +146,9 @@ node-oracledb Thin and Thick modes. For more details see :ref:`modediff`.
     * - Bequeath connections
       - No
       - Yes
+    * - Oracle Database 26ai Deep Data Security (see :ref:`deepdatasecurity`)
+      - Yes
+      - No
     * - Lightweight Directory Access Protocol (LDAP) connections
       - No
       - Yes
@@ -197,6 +200,9 @@ node-oracledb Thin and Thick modes. For more details see :ref:`modediff`.
     * - Client Result Caching (CRC) (see :ref:`clientresultcache`)
       - No
       - Yes
+    * - Direct Path Loads (see :ref:`directpathloads`)
+      - Yes
+      - No
     * - In-band notifications
       - Yes
       - Yes
@@ -204,7 +210,7 @@ node-oracledb Thin and Thick modes. For more details see :ref:`modediff`.
       - No
       - Yes
     * - Oracle Transactional Event Queue (TxEventQ) and classic Advanced Queuing (AQ) (see :ref:`aq`)
-      - No
+      - Yes
       - Yes
     * - Call timeouts (see :attr:`connection.callTimeout`)
       - Yes
@@ -236,6 +242,9 @@ node-oracledb Thin and Thick modes. For more details see :ref:`modediff`.
     * - Application Continuity (AC) and Transparent Application Continuity (TAC) (see :ref:`appcontinuity`)
       - No
       - Yes
+    * - Oracle AI Database 26ai Pipelining (see :ref:`pipelining`)
+      - Yes
+      - No
     * - End-to-end monitoring and tracing attributes (see :ref:`tracingsql`)
       - Yes
       - Yes
@@ -245,7 +254,7 @@ node-oracledb Thin and Thick modes. For more details see :ref:`modediff`.
     * - Feature tracking
       - No
       - Yes
-    * - Oracle Database version 23 Sessionless Transactions (see :ref:`sessionlesstxns`)
+    * - Oracle Database 26ai Sessionless Transactions (see :ref:`sessionlesstxns`)
       - Yes
       - Yes
     * - Two-phase Commit (TPC) (see :ref:`twopc`)
@@ -290,10 +299,10 @@ node-oracledb Thin and Thick modes. For more details see :ref:`modediff`.
     * - Oracle Database 21c JSON data type (see :ref:`json21ctype`)
       - Yes
       - Yes
-    * - Oracle Database version 23 JSON-Relational Duality Views (see :ref:`jsondualityviews`)
+    * - Oracle AI Database 26ai JSON-Relational Duality Views (see :ref:`jsondualityviews`)
       - Yes
       - Yes
-    * - Oracle Database version 23 BOOLEAN data type (see :ref:`oracledbconstantsdbtype`)
+    * - Oracle AI Database 26ai BOOLEAN data type (see :ref:`oracledbconstantsdbtype`)
       - Yes
       - Yes
     * - ROWID, UROWID data types (see :ref:`oracledbconstantsdbtype`)
@@ -311,7 +320,7 @@ node-oracledb Thin and Thick modes. For more details see :ref:`modediff`.
     * - NCHAR, NVARCHAR2, NCLOB data types (see :ref:`oracledbconstantsdbtype`)
       - Yes
       - Yes
-    * - Oracle Database 23c VECTOR data type (see :ref:`oracledbconstantsdbtype`)
+    * - Oracle AI Database 26ai VECTOR data type (see :ref:`oracledbconstantsdbtype`)
       - Yes
       - Yes
     * - Bind PL/SQL Boolean
@@ -420,7 +429,7 @@ See :ref:`tnsadmin` and :ref:`oraaccess` for more information.
 Connection Strings
 ++++++++++++++++++
 
-Node-oracledb Thin mode accepts :ref:` Oracle Net Services connection strings
+Node-oracledb Thin mode accepts :ref:`Oracle Net Services connection strings
 <connectionstrings>` in the same formats as the Oracle Client libraries used by
 Thick mode does, but not all Oracle Net keywords will be supported.
 
@@ -577,11 +586,21 @@ from node-oracledb Thick mode in the following ways:
 - Not all the parameters of the :meth:`oracledb.createPool()` method are
   applicable to both node-oracledb modes. Each mode ignores unrecognized
   parameters. The parameters that are supported in Thin mode include
-  ``accessToken``, ``connectString``, ``connectionString``,
-  ``enableStatistics``, ``password``, ``poolAlias``, ``poolIncrement``,
-  ``poolMax``, ``poolMin``, ``poolPingInterval``, ``poolTimeout``,
-  ``queueMax``, ``queueRequests``, ``queueTimeout``, ``stmtCacheSize``,
-  ``user``, and ``username`` parameters.
+  ``accessToken``, ``accessTokenConfig``, ``appContext``, ``configDir``,
+  ``connectionIdPrefix``, ``connectString``, ``connectionString``,
+  ``connectTimeout``, ``driverName``, ``edition``, ``enableStatistics``,
+  ``expireTime``, ``externalAuth``, ``homogeneous``, ``httpsProxy``,
+  ``httpsProxyPort``, ``machine``, ``maxLifetimeSession``,
+  ``networkCompression``, ``networkCompressionThreshold``, ``osUser``,
+  ``password``, ``poolAlias``, ``poolIncrement``, ``poolMax``, ``poolMin``,
+  ``poolPingInterval``, ``poolPingTimeout``, ``poolTimeout``, ``privilege``,
+  ``program``, ``queueMax``, ``queueRequests``, ``queueTimeout``,
+  ``retryCount``, ``retryDelay``, ``sdu``, ``sessionCallback``,
+  ``sourceRoute``, ``sslAllowWeakDNMatch``, ``sslServerCertDN``,
+  ``sslServerDNMatch``, ``stmtCacheSize``, ``terminal``,
+  ``tokenAuthConfigAzure``, ``tokenAuthConfigOci``,
+  ``transportConnectTimeout``, ``user``, ``username``, ``useSNI``,
+  ``walletContent``, ``walletLocation``, and ``walletPassword`` parameters.
 
 - Node-oracledb Thin mode only supports homogeneous pools.
 
@@ -677,13 +696,12 @@ Supported Database Data Types in Thin and Thick Modes
 
 Node-oracledb Thin and Thick modes support different Oracle Database data
 types. The following table lists the types that are supported in the
-node-oracledb driver. See `Oracle Database Types <https://docs.oracle.
-com/en/database/oracle/oracle-database/21/sqlrf/Data-Types.html#GUID-A3C0D836-
-BADB-44E5-A5D4-265BA5968483>`__ and `PL/SQL Types <https://docs.oracle.com/en
-/database/oracle/oracle-database/21/lnpls/plsql-data-types.html#GUID-391C58FD-
-16AF-486C-AF28-173E309CDBA5>`__. The node-oracledb database type shown is the
-common one. In some node-oracledb APIs you may use other types, for example
-when binding numeric values.
+node-oracledb driver. See `Oracle Database Types <https://www.oracle.com/pls/
+topic/lookup?ctx=dblatest&id=GUID-A3C0D836-BADB-44E5-A5D4-265BA5968483>`__ and
+`PL/SQL Types <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-
+391C58FD-16AF-486C-AF28-173E309CDBA5>`__. The node-oracledb database type
+shown is the common one. In some node-oracledb APIs you may use other types,
+for example when binding numeric values.
 
 .. list-table-with-summary::  Oracle Database Data Types Supported
     :header-rows: 1
@@ -792,6 +810,9 @@ when binding numeric values.
       - Thick mode only
     * - XMLType
       - DB_TYPE_XMLTYPE
+      - Yes
+    * - VECTOR
+      - DB_TYPE_VECTOR
       - Yes
 
 .. _testingmode:

@@ -13,6 +13,154 @@ that impact both Thin and Thick modes ('Common'), the changes that
 affect Thin mode (the default runtime behavior of node-oracledb from 6.0.0),
 and the changes that affect the optional :ref:`Thick Mode <enablingthick>`.
 
+node-oracledb `v7.0.0 <https://github.com/oracle/node-oracledb/compare/v6.10.0...v7.0.0>`__ (2 Jun 2025)
+-----------------------------------------------------------------------------------------------------------
+
+Common Changes
+++++++++++++++
+
+#)  Added :meth:`connection.appContext()` and
+    :meth:`connection.clearAppContext()` methods to the
+    :ref:`Connection <connectionclass>` object.
+
+#)  Added methods :meth:`oracledb.isSimpleSqlName()` and
+    :meth:`oracledb.isQualifiedSqlName()` to validate simple and qualified SQL
+    names, and methods :meth:`oracledb.enquoteLiteral()` and
+    :meth:`oracledb.enquoteName()` to safely quote SQL literals and
+    identifiers. See :ref:`buildandvalidatesql` for more information.
+
+#)  Added new connection properties :attr:`connection.pdbName` and
+    :attr:`connection.dbUniqueName` that provide the pluggable database name
+    and database unique name respectively.
+
+#)  Added :meth:`lob.trim()` method to the :ref:`LOB object <lobclass>`.
+
+#)  Added support for
+    :ref:`Explicit Resource Management <explicitresourcemgmtoverview>`
+    (introduced in `Node.js version 24 <https://nodejs.org/en/blog/release/
+    v24.0.0>`__) to :ref:`Connection <connectionclass>`,
+    :ref:`Pool <poolclass>`, and :ref:`Resultset <resultsetclass>` objects.
+    See `Issue #1631 <https://github.com/oracle/node-oracledb/issues/1631>`__.
+
+#)  Added support for :ref:`AWS Simple Storage Service (S3) <awss3>`
+    Centralized Configuration Provider.
+
+#)  Added support for :ref:`AWS Secrets Manager <awssecretsmanager>`
+    Centralized Configuration Provider.
+
+#)  Enabled :ref:`Token-based Authentication <tokenbasedauthentication>` with
+    proxy session users by supplying proxy user name inside square brackets
+    (for example, ``user: "[session_user]"``) alongside an authentication
+    token when using external authentication.
+
+#)  Added new attribute :attr:`oracledb.thickModeDSNPassthrough` to control
+    connect string parsing. When set to *false*, Thick mode behaves similar to
+    Thin mode when resolving Oracle Database Easy Connect strings, processing
+    "njs." prefixed query parameters, and applying descriptor overrides.
+    Connection and pool creation in both modes can use this parsing to ensure
+    consistent behavior. The default value *true* retains the previous Thick
+    mode behavior of passing the connect string directly down to the Oracle
+    Client libraries.
+
+#)  Normalized :ref:`interval year-to-month <intervalyeartomonth>` and
+    :ref:`interval day-to-second <intervaldaytosecond>` database column type
+    values.
+
+#)  Added new methods in :ref:`TraceHandlerBase class <tracehandlerbaseclass>`
+    for pool events which can be used for tracking connection pool statistics
+    and metrics for :ref:`OpenTelemetry <opentelemetry>` support.
+
+#)  Improved documentation to clarify the use of the ``libDir`` property with
+    :meth:`oracledb.initOracleClient()` on Linux and related platforms.
+    See `Issue #1771 <https://github.com/oracle/node-oracledb/issues/1771>`__.
+
+#)  Fixed issue to generate the correct SSL_SERVER_CERT_DN entry from an
+    :ref:`Easy Connect string <easyconnect>`.
+    See `Issue #1772 <https://github.com/oracle/node-oracledb/issues/1772>`__
+    (Slawomir Osoba).
+
+#)  Fixed bug which did not update the :attr:`lob.length` property correctly
+    after a write operation was performed on the :ref:`LOB object <lobclass>`.
+
+#)  Ensured that the :attr:`lob.length`, :attr:`lob.chunkSize`, and
+    :attr:`lob.pieceSize` properties return `undefined` for a closed
+    :ref:`LOB object <lobclass>`.
+
+#)  Fixed issue where SQL statements were not included in OpenTelemetry
+    trace spans for :meth:`connection.executeMany()`.
+
+#)  Internal code refactoring to optimize handling of
+    :ref:`LOB object <lobclass>` methods and attributes.
+
+#)  Improved internal handling of protocol and network code.
+
+#)  Multiple documentation and test updates and improvements.
+
+Thin Mode Changes
++++++++++++++++++
+
+#)  Added support for :ref:`Direct Path Loads <directpathloads>`.
+
+#)  Added support for Oracle AI Database 26ai :ref:`Pipelining <pipelining>`.
+
+#)  Added :meth:`connection.setEndUserSecurityContext()` and
+    :meth:`connection.clearEndUserSecurityContext()` methods to the
+    :ref:`Connection <connectionclass>` to work with
+    :ref:`Oracle Deep Data Security <deepdatasecurity>` feature introduced in
+    Oracle AI Database 26ai.
+
+#)  Fixed bug to close the socket when ``NJS-138`` error is thrown.
+    See `Issue #1764 <https://github.com/oracle/node-oracledb/issues/1764>`__.
+
+#)  Fixed bug that throws an error when calling the same select statement with
+    different :ref:`fetchInfo <propexecfetchinfo>` settings.
+    See `Issue #1747 <https://github.com/oracle/node-oracledb/issues/1747>`__.
+
+#)  Fixed bug to avoid calling ``fetchTypeHandler`` more than once when LOB
+    objects are used.
+    See `Issue #1769 <https://github.com/oracle/node-oracledb/issues/1769>`__.
+
+#)  Fixed Thin mode authentication failures caused by "Invalid key length"
+    errors when validating encrypted server responses.
+    See `Issue #1770 <https://github.com/oracle/node-oracledb/issues/1770>`__.
+
+#)  Fixed bug when decoding PL/SQL booleans in Oracle Database 12.1.
+
+#)  Added error message when :ref:`dbObject attributes <dbobjectproperties>`
+    with locators are accessed in Thin mode.
+
+#)  Added callback as part of parameters when creating
+    :ref:`connection pool <connpooling>` in Thin mode. The callback can call
+    pool events inside the connection pool methods.
+
+#)  Added error ``NJS-192`` for unsupported database character sets in
+    node-oracledb Thin mode.
+
+Thick Mode Changes
+++++++++++++++++++
+
+#)  Fixed potential crash when multiple
+    :ref:`implicit resultsets <implicitresults>` are closed.
+
+#)  Improved :ref:`sparse vector <sparsevectors>` handling so that empty
+    sparse vectors can be bound and fetched without raising ORA errors.
+
+#)  Addressed potential memory leak issues for resultsets, token callbacks
+    and Advanced Queuing (AQ).
+
+#)  Improved Token callback error handling and validation for undefined access
+    token callback arguments.
+
+#)  Fixed a crash that could occur when closing a pool configured with an
+    access token callback.
+
+#)  Improved data handling of :ref:`SODA documents <sodadocumentclass>`.
+
+#)  Dropped support for Oracle Client libraries earlier than 19c.
+
+#)  Dropped support for pre-built macOS Intel x86-64 binaries from the
+    node-oracledb installation.
+
 node-oracledb `v6.10.0 <https://github.com/oracle/node-oracledb/compare/v6.9.0...v6.10.0>`__ (16 Oct 2025)
 -----------------------------------------------------------------------------------------------------------
 
@@ -52,6 +200,8 @@ Common Changes
     database and client software, is detailed in `Release Schedule of Current
     Database Releases <https://support.oracle.com/epmos/faces/
     DocumentDisplay?id=742060.1>`__.
+
+#)  Fixed NJS-089 error to display the correct driver mode.
 
 Thin Mode Changes
 +++++++++++++++++
@@ -1189,8 +1339,7 @@ node-oracledb `v6.0.0 <https://github.com/oracle/node-oracledb/compare/v5.5.0...
 #)  Type and Metadata changes:
 
     - Query extended metadata is now always available.  The
-      ``oracledb.extendedMetaData`` and
-      :ref:`equivalent execution attribute <propexecextendedmetadata>` values
+      ``oracledb.extendedMetaData`` and equivalent execution attribute values
       are ignored.
 
     - Query column metadata now always returns unique column names regardless

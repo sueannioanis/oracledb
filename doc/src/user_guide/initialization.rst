@@ -24,6 +24,9 @@ To change from the default Thin mode to the Thick mode:
 1. Oracle Client libraries must be available to handle communication to your
    database. These need to be installed separately, see :ref:`installation`.
 
+   Node-oracledb supports Oracle Client libraries version 19 or later.
+   Previous versions of node-oracledb supported older Oracle Client versions.
+
    Oracle Client libraries from one of the following can be used:
 
    - An `Oracle Instant Client <https://www.oracle.com/database/technologies/
@@ -80,9 +83,9 @@ More details and options are shown in the following sections:
   the Oracle Client libraries are loaded immediately from that directory. If
   you call :meth:`~oracledb.initOracleClient()` but do *not* set the ``libDir``
   attribute, the Oracle Client libraries are loaded immediately using the
-  search heuristics discussed in later sections. If you set ``libDir`` on
-  Linux and related platforms, you must still have configured the system
-  library search path to include that directory before starting Node.js.
+  search heuristics discussed in later sections. Never set ``libDir`` on Linux
+  and related platforms. Instead you must configure the system library search
+  path to include the directory before starting Node.js.
 
 - Once the Thick mode is enabled, you cannot go back to the Thin mode except by
   removing calls to :meth:`~oracledb.initOracleClient()` and restarting the
@@ -358,14 +361,13 @@ See :ref:`usingconfigfiles` to understand how node-oracledb locates the files.
 Optional Oracle Client Configuration File
 -----------------------------------------
 
-If the Oracle Client Libraries used by node-oracledb Thick mode are version
-12, or later, then an optional `oraaccess.xml <https://www.oracle.com/pls/
-topic/lookup?ctx=dblatest&id=GUID-9D12F489-EC02-46BE-8CD4-5AECED0E2BA2>`__
-file can be used to configure some behaviors of those libraries, such as
-statement caching and prefetching. This can be useful if the application
-cannot be altered. The file is read when node-oracledb starts. The file is
-read from the same directory as the :ref:`Optional Oracle Net Configuration
-<tnsadmin>` files.
+In node-oracledb Thick mode, an optional `oraaccess.xml <https://www.oracle.
+com/pls/topic/lookup?ctx=dblatest&id=GUID-9D12F489-EC02-46BE-8CD4-
+5AECED0E2BA2>`__ file can be used to configure some behaviors of those
+libraries, such as statement caching and prefetching. This can be useful if
+the application cannot be altered. The file is read when node-oracledb starts.
+The file is read from the same directory as the :ref:`Optional Oracle Net
+Configuration <tnsadmin>` files.
 
 .. note::
 
@@ -453,7 +455,6 @@ In node-oracledb Thin mode, you must specify the directory that contains the
 
 On Windows, if you use backslashes in the ``configDir`` string, you will need
 to double them.
-
 .. note::
 
     In Thin mode, you must explicitly set the directory because traditional
@@ -489,7 +490,7 @@ explicitly specified or a default location will be used.  Do one of:
 
   - For Oracle Instant Client ZIP files, the ``network/admin`` subdirectory of
     Instant Client, for example
-    ``/opt/oracle/instantclient_23_5/network/admin``.
+    ``/opt/oracle/instantclient_23_26/network/admin``.
 
   - For Oracle Instant Client RPMs, the ``network/admin`` subdirectory of
     Instant Client, for example
@@ -498,6 +499,78 @@ explicitly specified or a default location will be used.  Do one of:
   - When using libraries from a local Oracle Database or full client
     installation, in ``$ORACLE_HOME/network/admin`` or
     ``$ORACLE_BASE_HOME/network/admin``.
+
+.. _setthickmodedsnpassthrough:
+
+Setting thickModeDSNPassthrough
++++++++++++++++++++++++++++++++
+
+The :attr:`oracledb.thickModeDSNPassthrough` property determines whether the
+connection strings passed in the ``connectString`` property of
+:meth:`oracledb.getConnection()` or :meth:`oracledb.createPool()` in
+node-oracledb Thick mode will be parsed by Oracle Client libraries or
+node-oracledb itself. This property must be set before creating a standalone
+connection or pool connection. For example:
+
+.. code-block:: javascript
+
+    const oracledb = require('oracledb');
+    oracledb.thickModeDSNPassthrough = false;
+
+When :attr:`oracledb.thickModeDSNPassthrough` is *true*, it is left to the
+underlying Oracle Client libraries to locate and read any optional
+tnsnames.ora configuration in Thick mode. This was the existing behavior of
+Thick mode in node-oracledb versions prior to 7.0, and is the default behavior
+starting from node-oracledb 7.0 onwards.
+
+Setting :attr:`oracledb.thickModeDSNPassthrough` to *false* makes Thick mode
+use the same heuristics as Thin mode regarding connection string parameter
+handling and reading any optional tnsnames.ora configuration file:
+
+- The search path used to locate and read any optional
+  :ref:`tnsnames.ora <tnsadmin>` file is handled in the node-oracledb driver.
+  Different :ref:`tnsnames.ora <tnsadmin>` files can be used by each
+  connection.
+
+- All connect strings will be parsed by the node-oracledb driver and a
+  generated connect descriptor is sent to Oracle Client libraries. Parameters
+  unrecognized by node-oracledb in :ref:`Easy Connect strings <easyconnect>`
+  are discarded. For :ref:`Connect Descriptors <embedtns>` passed explicitly
+  as the ``connectString`` parameter value or stored in a
+  :ref:`tnsnames.ora <tnsadmin>` file, node-oracledb parses and re-serializes
+  the descriptor in order to apply supported overrides. Parameters that are
+  recognized and unrecognized by node-oracledb will be passed unchanged to
+  Oracle Client libraries. If any connection parameters are defined in
+  :meth:`oracledb.getConnection()` or :meth:`oracledb.createPool()` and are
+  not defined in the ``connectString`` parameter, then those connection
+  parameters will be added to the connect descriptor before it is passed to
+  Oracle Client libraries. Consider the following example:
+
+  .. code-block:: javascript
+
+      const connection = await oracledb.getConnection({
+        user            : "hr",
+        password        : mypw,  // mypw contains the hr schema password
+        connectString   : "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=mymachine.example.com))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=orcl)))",
+        sdu             : 8192,
+        retryCount      : 5,
+        sslServerCertDN : 'CN=mydb'
+    });
+
+  In the example, the ``sdu`` and ``retryCount`` parameters will be added to
+  the DESCRIPTION section of the connect descriptor, if not already present,
+  before it is passed to Oracle Client libraries. Similarly, the
+  ``sslServerCertDN`` parameter will be added to the SECURITY section of the
+  connect descriptor. If these parameters are defined in a connect descriptor
+  and in the connection creation methods, the values specified in the connect
+  descriptor take precedence.
+
+Note that the files such as sqlnet.ora and oraaccess.xml are only used by
+Thick mode. They are always located and read by Oracle Client libraries
+regardless of the :attr:`oracledb.thickModeDSNPassthrough` value. For these
+files, the directory search heuristic is determined by the Oracle Client
+libraries at the time :meth:`oracledb.initOracleClient()` is called, as
+detailed in the above section.
 
 .. _environmentvariables:
 

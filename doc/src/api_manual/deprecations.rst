@@ -22,6 +22,9 @@ first.
     * - Name
       - Version Deprecated or Desupported
       - Alternative
+    * - Oracle Client libraries older than version 19 are desupported.
+      - Desupported in 7.0
+      - Upgrade the Oracle Client library to 19c or later.
     * - Connectivity and interoperability with Oracle Database and Oracle Client libraries older than version 19
       - Deprecated in 6.10
       - Upgrade the database and client library versions.
@@ -30,13 +33,13 @@ first.
     * - Property :ref:`fetchInfo <propexecfetchinfo>`
       - Deprecated in 6.0
       - Use :ref:`fetchTypeHandler <fetchtypehandler>` functionality
-    * - Property :attr:`oracledb.extendedMetaData`
+    * - Property ``oracledb.extendedMetaData``
       - Desupported in 6.0
       - Extended metadata is now always returned
-    * - Property :ref:`extendedMetaData <propexecextendedmetadata>` of ``connection.execute()`` ``Options`` Parameter
+    * - Property ``extendedMetaData`` of ``connection.execute()`` ``Options`` Parameter
       - Desupported in 6.0
       - Extended metadata is now always returned
-    * - Property :ref:`accessTokenCallback <createpoolpoolattrsaccesstokencallback>`
+    * - Property ``accessTokenCallback``
       - Desupported in 6.0
 
         Deprecated in 5.5

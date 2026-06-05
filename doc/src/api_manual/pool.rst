@@ -19,6 +19,12 @@ release all connections and terminate the connection pool by calling the
 
 See :ref:`Connection Pooling <connpooling>` for more information.
 
+.. note::
+
+    Starting from node-oracledb 7.0 onwards, Pool objects support
+    :ref:`Explicit Resource Management <explicitresourcemgmtoverview>` that
+    was introduced in Node.js version 24.
+
 .. _poolproperties:
 
 Pool Properties
@@ -124,11 +130,10 @@ values.
     have existed for longer than ``maxLifetimeSession`` seconds. Connections
     that are in active use will not be closed.
 
-    In node-oracledb Thick mode, Oracle Client libraries 12.1 or later must
-    be used. Note that when using node-oracledb in Thick mode with Oracle
-    Client libraries prior to 21c, pool shrinkage is only initiated when the
-    pool is accessed. So, pools in fully dormant applications will not shrink
-    until the application is next used.
+    Note that when using node-oracledb in Thick mode with Oracle Client
+    libraries prior to 21c, pool shrinkage is only initiated when the pool is
+    accessed. So, pools in fully dormant applications will not shrink until
+    the application is next used.
 
     The default value is *0*.
 
@@ -667,9 +672,7 @@ Pool Methods
     .. versionadded:: 5.4
 
     This method can be used to set an IAM access token and private key after
-    pool creation. It is useful if the IAM token is known to have expired,
-    and you are not using
-    :ref:`accessTokenCallback <createpoolpoolattrsaccesstokencallback>`.
+    pool creation. It is useful if the IAM token is known to have expired.
 
     It can also be useful in tests to set an expired token so that token
     expiry code paths can be tested.

@@ -67,11 +67,11 @@ The output is::
         }
     ]
 
-Using Oracle Client Libraries 19c or Earlier
---------------------------------------------
+Using Oracle Client Libraries 19c
+---------------------------------
 
-If node-oracledb Thick mode uses Oracle Client Libraries 19c (or earlier),
-querying an Oracle Database 21c (or later), then JSON column returns a
+If node-oracledb Thick mode uses Oracle Client Libraries 19c, querying an
+Oracle Database 21c (or later), then JSON column returns a
 :ref:`Lob Class <lobclass>` BLOB. You can stream the Lob or use
 :meth:`lob.getData()`:
 
@@ -448,12 +448,12 @@ This produces::
 JSON-Relational Duality Views
 =============================
 
-Oracle Database version 23 JSON-Relational Duality Views allow data to be
-stored as rows in tables to provide the benefits of the relational model and
-SQL access, while also allowing read and write access to data as JSON
-documents for application simplicity. See the `JSON-Relational Duality
-Developer's Guide <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=
-JSNVU>`__ for more information.
+Oracle Database 26ai JSON-Relational Duality Views allow data to be stored as
+rows in tables to provide the benefits of the relational model and SQL access,
+while also allowing read and write access to data as JSON documents for
+application simplicity. See the `JSON-Relational Duality Developer's Guide
+<https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=JSNVU>`__ for more
+information.
 
 For example, if the tables ``authorTable`` and ``bookTable`` exist::
 

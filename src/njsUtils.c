@@ -1,4 +1,4 @@
-// Copyright (c) 2015, 2025, Oracle and/or its affiliates.
+// Copyright (c) 2015, 2026, Oracle and/or its affiliates.
 
 //-----------------------------------------------------------------------------
 //
@@ -574,6 +574,145 @@ bool njsUtils_getNamedPropertyAppContext(napi_env env, napi_value value,
     return true;
 }
 
+bool njsUtils_parseKeyValueEntries(
+    napi_env env,
+    napi_value value,
+    const char *namespaceName,
+    uint32_t namespaceNameLength,
+    uint32_t *numEntries,
+    dpiAppContext **entries)
+{
+    napi_status status;
+    bool isArray;
+    uint32_t arrayLen;
+
+    *numEntries = 0;
+    *entries = NULL;
+
+    status = napi_is_array(env, value, &isArray);
+    if (status != napi_ok)
+        return njsUtils_genericThrowError(env, __FILE__, __LINE__);
+    if (!isArray)
+        return false;
+
+    status = napi_get_array_length(env, value, &arrayLen);
+    if (status != napi_ok)
+        return njsUtils_genericThrowError(env, __FILE__, __LINE__);
+    if (arrayLen == 0)
+        return true;
+
+    dpiAppContext *ctxEntries = calloc(arrayLen, sizeof(dpiAppContext));
+    if (!ctxEntries)
+        return njsUtils_throwInsufficientMemory(env);
+
+    bool success = true;
+    uint32_t filled = 0;
+
+    for (uint32_t i = 0; i < arrayLen; i++) {
+        napi_value elem;
+        napi_value propNames;
+        napi_value key;
+        napi_value val;
+        uint32_t propLen;
+        size_t keyLen;
+        size_t valLen;
+        char *mutableKeyBuffer = NULL;
+        char *mutableValBuffer = NULL;
+
+        status = napi_get_element(env, value, i, &elem);
+        if (status != napi_ok) {
+            success = njsUtils_genericThrowError(env, __FILE__, __LINE__);
+            break;
+        }
+
+        status = napi_get_property_names(env, elem, &propNames);
+        if (status != napi_ok) {
+            success = njsUtils_genericThrowError(env, __FILE__, __LINE__);
+            break;
+        }
+
+        status = napi_get_array_length(env, propNames, &propLen);
+        if (status != napi_ok) {
+            success = njsUtils_genericThrowError(env, __FILE__, __LINE__);
+            break;
+        }
+        status = napi_get_element(env, propNames, 0, &key);
+        if (status != napi_ok) {
+            success = njsUtils_genericThrowError(env, __FILE__, __LINE__);
+            break;
+        }
+
+        status = napi_get_property(env, elem, key, &val);
+        if (status != napi_ok) {
+            success = njsUtils_genericThrowError(env, __FILE__, __LINE__);
+            break;
+        }
+
+        status = napi_get_value_string_utf8(env, key, NULL, 0, &keyLen);
+        if (status != napi_ok) {
+            success = njsUtils_genericThrowError(env, __FILE__, __LINE__);
+            break;
+        }
+
+        mutableKeyBuffer = malloc(keyLen + 1);
+        if (!mutableKeyBuffer) {
+            success = njsUtils_throwInsufficientMemory(env);
+            break;
+        }
+
+        status = napi_get_value_string_utf8(env, key,
+                mutableKeyBuffer, keyLen + 1, &keyLen);
+        if (status != napi_ok) {
+            free(mutableKeyBuffer);
+            success = njsUtils_genericThrowError(env, __FILE__, __LINE__);
+            break;
+        }
+
+        status = napi_get_value_string_utf8(env, val, NULL, 0, &valLen);
+        if (status != napi_ok) {
+            free(mutableKeyBuffer);
+            success = njsUtils_genericThrowError(env, __FILE__, __LINE__);
+            break;
+        }
+
+        mutableValBuffer = malloc(valLen + 1);
+        if (!mutableValBuffer) {
+            free(mutableKeyBuffer);
+            success = njsUtils_throwInsufficientMemory(env);
+            break;
+        }
+
+        status = napi_get_value_string_utf8(env, val,
+                mutableValBuffer, valLen + 1, &valLen);
+        if (status != napi_ok) {
+            free(mutableKeyBuffer);
+            free(mutableValBuffer);
+            success = njsUtils_genericThrowError(env, __FILE__, __LINE__);
+            break;
+        }
+
+        ctxEntries[i].namespaceName = namespaceName;
+        ctxEntries[i].namespaceNameLength = namespaceNameLength;
+        ctxEntries[i].name = mutableKeyBuffer;
+        ctxEntries[i].nameLength = (uint32_t) keyLen;
+        ctxEntries[i].value = mutableValBuffer;
+        ctxEntries[i].valueLength = (uint32_t) valLen;
+        filled = i + 1;
+    }
+
+    if (success) {
+        *numEntries = arrayLen;
+        *entries = ctxEntries;
+        return true;
+    }
+
+    for (uint32_t j = 0; j < filled; j++) {
+        NJS_FREE_AND_CLEAR(ctxEntries[j].name)
+        NJS_FREE_AND_CLEAR(ctxEntries[j].value)
+    }
+    free(ctxEntries);
+    return false;
+}
 
 //-----------------------------------------------------------------------------
 // njsUtils_getNamedPropertyString()
@@ -603,6 +742,7 @@ bool njsUtils_getNamedPropertyStringArray(napi_env env, napi_value value,
         const char *name, uint32_t *resultNumElems, char ***resultElems,
         uint32_t **resultElemLengths)
 {
+    napi_status status;
     uint32_t arrayLength, i, *tempLengths;
     napi_value array, element;
     char **tempStrings;
@@ -622,22 +762,36 @@ bool njsUtils_getNamedPropertyStringArray(napi_env env, napi_value value,
     tempStrings = calloc(arrayLength, sizeof(char*));
     if (!tempStrings)
         return njsUtils_throwInsufficientMemory(env);
-    *resultElems = tempStrings;
     tempLengths = calloc(arrayLength, sizeof(uint32_t));
-    if (!tempLengths)
+    if (!tempLengths) {
+        free(tempStrings);
         return njsUtils_throwInsufficientMemory(env);
-    *resultElemLengths = tempLengths;
+    }
 
     // populate the results
-    *resultNumElems = arrayLength;
     for (i = 0; i < arrayLength; i++) {
-        NJS_CHECK_NAPI(env, napi_get_element(env, array, i, &element))
+        status = napi_get_element(env, array, i, &element);
+        if (status != napi_ok) {
+            while (i > 0)
+                free(tempStrings[--i]);
+            free(tempStrings);
+            free(tempLengths);
+            return njsUtils_genericThrowError(env, __FILE__, __LINE__);
+        }
         if (!njsUtils_copyStringFromJS(env, element, &tempStrings[i],
-                &tempLength))
+                &tempLength)) {
+            while (i > 0)
+                free(tempStrings[--i]);
+            free(tempStrings);
+            free(tempLengths);
             return false;
+        }
         tempLengths[i] = (uint32_t) tempLength;
     }
 
+    *resultNumElems = arrayLength;
+    *resultElems = tempStrings;
+    *resultElemLengths = tempLengths;
     return true;
 }
 

@@ -24,10 +24,26 @@ The properties of a Lob object are listed below.
     This read-only property is a number which corresponds to the size used by
     the Oracle LOB layer when accessing or modifying the LOB value.
 
+    The ``lob.chunkSize`` property returns *undefined* when a LOB is closed.
+
+    .. versionchanged:: 7.0
+
+        This property now returns *undefined* when a LOB is closed.
+
 .. attribute:: lob.length
 
     This read-only property is a number which specifies the length of a
     queried LOB in bytes (for BLOBs) or characters (for CLOBs and NCLOBs).
+
+    Due to Node.js type limitations, the largest ``length`` value will be
+    2 ^ 32 - 1, even if the actual LOB length is larger. Larger values will
+    wrap.
+
+    The ``lob.length`` property returns *undefined* when a LOB is closed.
+
+    .. versionchanged:: 7.0
+
+        This property now returns *undefined* when a LOB is closed.
 
 .. attribute:: lob.pieceSize
 
@@ -44,6 +60,12 @@ The properties of a Lob object are listed below.
     will be lost when internal buffers are resized.
 
     The maximum value for ``pieceSize`` is limited to the value of UINT_MAX.
+
+    The ``lob.pieceSize`` property returns *undefined* when a LOB is closed.
+
+    .. versionchanged:: 7.0
+
+        This property now returns *undefined* when a LOB is closed.
 
 .. attribute:: lob.type
 
@@ -206,6 +228,9 @@ Lob Methods
 
     Returns a portion (or all) of the data in the LOB.
 
+    Due to Node.js type limitations, this method will work correctly only with
+    LOBs of length less than 2 ^ 32.
+
     The parameters of ``lob.getData()`` are:
 
     .. list-table-with-summary:: lob.getData() Parameters
@@ -328,3 +353,58 @@ Lob Methods
     .. versionchanged:: 6.9
 
         Support for this method was added in node-oracledb Thick mode.
+
+.. method:: lob.trim()
+
+    .. versionadded:: 7.0
+
+    **Promise**::
+
+        promise = trim(Number newSize);
+
+    Trims the non-BFILE LOB to the new size specified.
+
+    The parameters of ``lob.trim()`` are:
+
+    .. list-table-with-summary:: lob.trim() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :summary: The first column displays the name of the parameter. The second column displays the data type of the parameter. The third column displays the description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``newSize``
+          - Number
+          - The size to which the LOB is to be trimmed.
+
+            Due to Node.js type limitations, the ``newSize`` value should be
+            set to less than 2 ^ 32. Using values greater than or equal to
+            2 ^ 32 will result in an error being raised.
+
+            The default value is *0*.
+
+            If this parameter is not specified, then the LOB is trimmed to size 0 which is an empty LOB.
+
+    **Callback**:
+
+    If you are using the callback programming style::
+
+        trim(function(Error error){});
+
+    The parameters of the callback function ``function(Error error)`` are:
+
+    .. list-table-with-summary::
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 15 30
+        :summary: The first column displays the callback function parameter.
+         The second column displays the description of the parameter.
+
+        * - Callback Function Parameter
+          - Description
+        * - Error ``error``
+          - If ``trim()`` succeeds, ``error`` is NULL. If an error occurs, then ``error`` contains the :ref:`error message <errorobj>`.

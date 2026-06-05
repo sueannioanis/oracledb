@@ -12,8 +12,8 @@ operations against a collection.
     In this release, SODA is only supported in node-oracledb Thick mode. See
     :ref:`enablingthick`.
 
-SODA can be used with Oracle Database 18.3 and above, when node-oracledb
-uses Oracle Client 18.5 or Oracle Client 19.3, or later.
+SODA can be used with Oracle Database 18.3 and later versions, when
+node-oracledb uses Oracle Client 19.3, or later.
 
 :ref:`Non-terminal SodaOperation methods <sodaoperationclassnonterm>` return
 the same object on which they are invoked, allowing them to be chained
@@ -106,8 +106,7 @@ with the key “c” is matched.
     Operations <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID
     -C941CE9D-97E1-42F8-91ED-4949B2B710BF>`__ for more information.
 
-    It requires Oracle Client 21.3 or higher (or Oracle Client 19 from
-    19.11).
+    It requires Oracle Client 21.3 or later (or Oracle Client 19 from 19.11).
 
 .. method:: sodaOperation.key()
 
@@ -285,7 +284,7 @@ method chain. Only one terminal method can be used in each chain.
 
             The number of documents matching the SodaOperation criteria.
 
-            Due to Node.js type limitations, the largest ``count`` value will be 232 - 1, even if more rows exist. Larger values will wrap.
+            Due to Node.js type limitations, the largest ``count`` value will be 2 ^ 32 - 1, even if more rows exist. Larger values will wrap.
 
 .. method:: sodaOperation.getCursor()
 
@@ -461,7 +460,7 @@ method chain. Only one terminal method can be used in each chain.
 
             The number of documents removed from the collection.
 
-            Due to Node.js type limitations, the largest ``count`` value will be 232 - 1, even if Oracle Database removed more rows. Larger values will wrap.
+            Due to Node.js type limitations, the largest ``count`` value will be 2 ^ 32 - 1, even if Oracle Database removed more rows. Larger values will wrap.
 
 .. method:: sodaOperation.replaceOne()
 

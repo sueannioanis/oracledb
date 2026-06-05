@@ -23,6 +23,12 @@ CURSOR “out” bind parameter.
 See :ref:`Fetching Rows with Result Sets <resultsethandling>` for more
 information on ResultSets.
 
+.. note::
+
+    Starting from node-oracledb 7.0 onwards, ResultSet objects support
+    :ref:`Explicit Resource Management <explicitresourcemgmtoverview>` that
+    was introduced in Node.js version 24.
+
 .. _resultsetproperties:
 
 ResultSet Properties
@@ -35,8 +41,6 @@ The properties of a *ResultSet* object are listed below.
     This read-only property is an array which contains an array of objects
     with metadata about the query or REF CURSOR columns.
 
-    The :attr:`~oracledb.extendedMetaData` property and the ``execute()``
-    option :ref:`extendedMetaData <propexecextendedmetadata>` are ignored.
     Extended metadata is now always returned.
 
     See :ref:`result.metaData <execmetadata>` for the available attributes.

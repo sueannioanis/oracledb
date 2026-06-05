@@ -10,6 +10,12 @@ A *Connection* object is obtained by a *Pool* class
 
 The connection is used to access an Oracle database.
 
+.. note::
+
+    Starting from node-oracledb 7.0 onwards, Connection objects support
+    :ref:`Explicit Resource Management <explicitresourcemgmtoverview>` that
+    was introduced in Node.js version 24.
+
 .. _connectionproperties:
 
 Connection Properties
@@ -144,6 +150,20 @@ The properties of a *Connection* object are listed below.
 
         SELECT UPPER(NAME) FROM V$DATABASE;
 
+.. attribute:: connection.dbUniqueName
+
+    .. versionadded:: 7.0
+
+    This read-only property is a string that identifies a globally unique name
+    for the database. This property returns the same value as the SQL
+    expression::
+
+        SELECT UPPER(SYS_CONTEXT('USERENV', 'DB_UNIQUE_NAME')) FROM DUAL;
+
+    .. note::
+
+        This property can only be used in node-oracledb Thin mode.
+
 .. attribute:: connection.dbOp
 
     .. versionadded:: 4.1
@@ -214,9 +234,7 @@ The properties of a *Connection* object are listed below.
     Transaction Guard as a means of ensuring that transactions are not
     duplicated. See :ref:`tg` for more information.
 
-    This property is only available with Oracle Database 12.1 or later. In
-    node-oracledb Thick mode, Oracle Client libraries 12.1 or later are
-    additionally required.
+    This property is only available with Oracle Database 12.1 or later.
 
 .. attribute:: connection.maxIdentifierLength
 
@@ -226,11 +244,8 @@ The properties of a *Connection* object are listed below.
     in bytes supported by the database to which the connection has been
     established.  See `Database Object Naming Rules
     <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&
-    id=GUID-75337742-67FD-4EC0-985F-741C93D918DA>`__. The value may be
-    *undefined*, *30*, or *128*. The value *undefined* indicates the size
-    cannot be reliably determined by node-oracledb, which occurs when using
-    Oracle Client libraries 12.1 (or older) to connect to Oracle Database
-    12.2, or later.
+    id=GUID-75337742-67FD-4EC0-985F-741C93D918DA>`__. The value may be *30* or
+    *128*.
 
 .. attribute:: connection.maxOpenCursors
 
@@ -285,6 +300,23 @@ The properties of a *Connection* object are listed below.
     will only be accurate if node-oracledb is also using Oracle Database 18,
     or later, client libraries. Otherwise it will show the base release such
     as “18.0.0.0.0” instead of “18.3.0.0.0”.
+
+.. attribute:: connection.pdbName
+
+    .. versionadded:: 7.0
+
+    This read-only property is a string that identifies the name of the
+    pluggable database associated with the connection. This property returns
+    the same value as the SQL expression::
+
+        SELECT UPPER(SYS_CONTEXT('USERENV', 'CON_NAME')) FROM DUAL;
+
+    When a PDB name is queried in a non-container database (non-CDB), it
+    returns the database's global name which is the same as the database name
+    (dbName). The database global name can be queried using this SQL
+    expression::
+
+        SELECT * FROM global_name;
 
 .. attribute:: connection.port
 
@@ -344,10 +376,9 @@ The properties of a *Connection* object are listed below.
         This property can only be used in node-oracledb Thick mode. See
         :ref:`enablingthick`.
 
-    When node-oracledb Thick mode is using Oracle Client libraries 12.2 or
-    later, the tag must be a `multi-property tag <https://www.oracle.com/pls/
-    topic/lookup?ctx=dblatest&id=GUID-DFA21225-E83C-4177-A79A-B8BA29DC662C>`__
-    with name=value pairs like “k1=v1;k2=v2”.
+    For node-oracledb Thick mode, the tag must be a `multi-property tag
+    <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-DFA21225-
+    E83C-4177-A79A-B8BA29DC662C>`__ with name=value pairs like “k1=v1;k2=v2”.
 
     An empty string represents not having a tag set.
 
@@ -446,6 +477,42 @@ The properties of a *Connection* object are listed below.
 
 Connection Methods
 ==================
+
+.. method:: connection.appContext()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        appContext(String namespaceName, Array keyValues);
+
+    This synchronous method sets an application context on a connection.
+
+    See :ref:`appcontextconnobjcreate`.
+
+    The parameters of the ``connection.appContext()`` are:
+
+    .. _appcontextparams:
+
+    .. list-table-with-summary:: connection.appContext() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :width: 100%
+        :summary: The first column displays the name of the parameter. The second column displays the data type of the parameter. The third column displays the description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``namespaceName``
+          - String
+          - The namespace of the application context to be set.
+        * - ``keyValues``
+          - Array
+          - An array of objects that contains the key-value pairs.
+
+            The key-value pair consists of the name of the attribute and an associated value.
 
 .. method:: connection.beginSessionlessTransaction()
 
@@ -666,6 +733,57 @@ Connection Methods
         * - Error ``error``
           - If ``changePassword()`` succeeds, ``error`` is NULL. If an error occurs, then ``error`` contains the :ref:`error message <errorobj>`.
 
+.. method:: connection.clearAppContext()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        clearAppContext(String namespaceName);
+
+    This synchronous method clears the application context set on a
+    connection.
+
+    See :ref:`appcontextconnobjcreate`.
+
+    The parameters of the ``connection.clearAppContext()`` are:
+
+    .. _clearappcontext:
+
+    .. list-table-with-summary:: connection.clearAppContext() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :width: 100%
+        :summary: The first column displays the name of the parameter. The second column displays the data type of the parameter. The third column displays the description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``namespaceName``
+          - String
+          - The namespace of the application context to be cleared.
+
+.. method:: connection.clearEndUserSecurityContext()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        clearEndUserSecurityContext();
+
+    This synchronous method clears the end user security context specified on
+    a connection.
+
+    This reverts the connection to its original state in which subsequent
+    database operations are executed on the connection without any end user
+    security context.
+
+    See :ref:`deepdatasecurity`.
+
+    Currently, this method is only relevant to node-oracledb's Thin mode.
+
 .. method:: connection.close()
 
     .. versionadded:: 1.9
@@ -870,6 +988,73 @@ Connection Methods
           - The OSON buffer that is to be decoded.
 
     See :ref:`osontype` for an example.
+
+.. method:: connection.directPathLoad()
+
+    .. versionadded:: 7.0
+
+    **Promise**::
+
+        promise = directPathLoad(String schema, String table, Array columns, Array data);
+
+    Performs a direct path load into the specified table.
+
+    The parameters of the ``connection.directPathLoad()`` are:
+
+    .. _connectiondirectpathload:
+
+    .. list-table-with-summary:: connection.directPathLoad() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 20
+        :summary: The first column displays the name of the parameter. The second column displays the data type of the parameter. The third column displays the description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``schema``
+          - String
+          - The name of the database schema.
+        * - ``table``
+          - String
+          - The name of the table into which data is to be loaded.
+        * - ``columns``
+          - Array
+          - The name of the columns to be populated.
+        * - ``data``
+          - Array
+          - The data to be loaded.
+
+    .. note::
+
+        This method can only be used in node-oracledb Thin mode.
+
+    See :ref:`directpathloads` for more information.
+
+    **Callback**:
+
+    If you are using the callback programming style::
+
+        directPathLoad(String schema, String table, Array columns, Array data, function(Error error){});
+
+    See :ref:`connectiondirectpathload` for information on the ``schema``,
+    ``table``, ``columns``, and ``data`` parameters.
+
+    The parameter of the callback function ``function(Error error)`` is:
+
+    .. list-table-with-summary::
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 15 30
+        :summary: The first column displays the callback function parameter.
+         The second column displays the description of the parameter.
+
+        * - Callback Function Parameter
+          - Description
+        * - Error ``error``
+          - If ``directPathLoad()`` succeeds, ``error`` is NULL. If an error occurs, then ``error`` contains the :ref:`error message <errorobj>`.
 
 .. method:: connection.encodeOSON()
 
@@ -1190,15 +1375,6 @@ Connection Methods
           - .. _propexecobjpojo:
 
             Overrides :attr:`oracledb.dbObjectAsPojo`.
-        * - ``extendedMetaData``
-          - Boolean
-          - .. _propexecextendedmetadata:
-
-            Overrides :attr:`oracledb.extendedMetaData`.
-
-            .. desupported:: 6.0
-
-            Extended metadata is now always returned.
         * - ``fetchArraySize``
           - Number
           - .. _propexecfetcharraysize:
@@ -1349,7 +1525,7 @@ Connection Methods
 
             .. versionadded:: 4.0
 
-            Implicit Results requires Oracle Database 12.1 or later, and Oracle Client 12.1 or later.
+            Implicit Results requires Oracle Database 12.1 or later.
         * - ``lastRowid``
           - .. _execlastrowid:
 
@@ -1367,16 +1543,16 @@ Connection Methods
 
             Extended metadata is now always returned and includes the following information attributes:
 
-            - ``annotations``: The `annotations <https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/annotations_clause.html#GUID-1AC16117-BBB6-4435-8794-2B99F8F68052>`__ object associated with the fetched column. If the column has no associated annotations, this attribute value is `undefined`. Annotations are supported from Oracle Database version 23 onwards. If node-oracledb Thick mode is used, Oracle Client version 23 or later is also required.
+            - ``annotations``: The `annotations <https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/annotations_clause.html#GUID-1AC16117-BBB6-4435-8794-2B99F8F68052>`__ object associated with the fetched column. If the column has no associated annotations, this attribute value is `undefined`. Annotations are supported from Oracle Database 26ai onwards. If node-oracledb Thick mode is used, Oracle Client version 23 or later is also required.
             - ``byteSize``: The database byte size. This is only set for ``oracledb.DB_TYPE_VARCHAR``, ``oracledb.DB_TYPE_CHAR`` and ``oracledb.DB_TYPE_RAW`` column types.
             - ``dbColumnName``: The actual database column name. This is to distinguish from the ``name`` attribute as the duplicate columns in the query will have the same value for this attribute.
             - ``dbType``: one of the :ref:`Oracle Database Type Constant <oracledbconstantsdbtype>` values.
             - ``dbTypeClass``: The class associated with the database type. This is only set if the database type is an object type.
             - ``dbTypeName``: The name of the database type, such as “NUMBER” or “VARCHAR2”. For object types, this will be the object name.
-            - ``domainName``: The name of the `data use case domain <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-17D3A9C6-D993-4E94-BF6B-CACA56581F41>`__ associated with the fetched column. If the column does not have a data use case domain, this attribute value is `undefined`. `Data use case domains <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-4743FDE1-7C6E-471B-BC9D-442383CCA2F9>`__ are supported from Oracle Database version 23 onwards. If node-oracledb Thick mode is used, Oracle Client version 23 or later is also required.
-            - ``domainSchema``: The schema name of the `data use case domain <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-17D3A9C6-D993-4E94-BF6B-CACA56581F41>`__ associated with the fetched column. If the column does not have a data use case domain, this attribute value is `undefined`. `Data use case domains <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-4743FDE1-7C6E-471B-BC9D-442383CCA2F9>`__ are supported from Oracle Database version 23 onwards. If node-oracledb Thick mode is used, Oracle Client version 23 or later is also required.
+            - ``domainName``: The name of the `data use case domain <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-17D3A9C6-D993-4E94-BF6B-CACA56581F41>`__ associated with the fetched column. If the column does not have a data use case domain, this attribute value is `undefined`. `Data use case domains <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-4743FDE1-7C6E-471B-BC9D-442383CCA2F9>`__ are supported from Oracle Database 26ai onwards. If node-oracledb Thick mode is used, Oracle Client version 23 or later is also required.
+            - ``domainSchema``: The schema name of the `data use case domain <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-17D3A9C6-D993-4E94-BF6B-CACA56581F41>`__ associated with the fetched column. If the column does not have a data use case domain, this attribute value is `undefined`. `Data use case domains <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-4743FDE1-7C6E-471B-BC9D-442383CCA2F9>`__ are supported from Oracle Database 26ai onwards. If node-oracledb Thick mode is used, Oracle Client version 23 or later is also required.
             - ``fetchType``: One of the :ref:`Node-oracledb Type Constant <oracledbconstantsnodbtype>` values.
-            - ``isJson``: Indicates if the column is known to contain JSON data. This will be ``true`` for JSON columns (from Oracle Database 21c) and for LOB and VARCHAR2 columns where "IS JSON" constraint is enabled (from Oracle Database 19c). This property will be ``false`` for all the other columns. It will also be ``false`` for any column when Oracle Client 18c or earlier is used in Thick mode or the Oracle Database version is earlier than 19c.
+            - ``isJson``: Indicates if the column is known to contain JSON data. This will be ``true`` for JSON columns (from Oracle Database 21c) and for LOB and VARCHAR2 columns where "IS JSON" constraint is enabled (from Oracle Database 19c). This property will be ``false`` for all the other columns. It will also be ``false`` for any column when the Oracle Database version is earlier than 19c.
             - ``isOson``: Indicates if the column is known to contain binary encoded OSON data. This attribute will be ``true`` in Thin mode and while using Oracle Client version 21c (or later) in Thick mode when the "IS JSON FORMAT OSON" check constraint is enabled on BLOB and RAW columns. It will be set to ``false`` for all other columns. It will also be set to ``false`` for any column when the Thick mode uses Oracle Client versions earlier than 21c. Note that the "IS JSON FORMAT OSON" check constraint is available from Oracle Database 19c onwards.
             - ``isSparseVector``: Indicates if the column is known to contain a sparse vector. This will be ``true`` for vector columns containing sparse vectors.
             - ``name``: The unique column name chosen by node-oracledb. It follows Oracle’s standard name-casing rules. It will commonly be uppercase, since most applications create tables using unquoted, case-insensitive names. If the query does not contain duplicate columns, this value will be the same as the actual database column name. If the query contains duplicate columns, the this attribute will create unique column names by appending an underscore and a unique number.
@@ -1440,7 +1616,7 @@ Connection Methods
 
             This property is a number. For `DML <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-2E008D4A-F6FD-4F34-9071-7E10419CA24D>`__ statements this contains the number of rows affected, for example the number of rows inserted. For non-DML statements such as queries and PL/SQL statements, ``rowsAffected`` is undefined.
 
-            Due to Node.js type limitations, the largest value shown will be 232 - 1, even if more rows were affected. Larger values will wrap.
+            Due to Node.js type limitations, the largest value shown will be 2 ^ 32 - 1, even if more rows were affected. Larger values will wrap.
         * - ``warning``
           - .. _execwarning:
 
@@ -1583,7 +1759,7 @@ Connection Methods
 
             The default value is *false*.
 
-            This feature works when node-oracledb is using version 12, or later, of the Oracle Client library, and using Oracle Database 12, or later.
+            This feature works when node-oracledb is using Oracle Database version 12, or later.
         * - ``keepInStmtCache``
           - Boolean
           - .. _executemanyoptkeepinstmtcache:
@@ -1713,7 +1889,7 @@ Connection Methods
 
             It is only present if a DML statement was executed.
 
-            Due to Node.js type limitations, the largest value shown will be 232 - 1, even if more rows were affected. Larger values will wrap.
+            Due to Node.js type limitations, the largest value shown will be 2 ^ 32 - 1, even if more rows were affected. Larger values will wrap.
         * - ``warning``
           - Object
           - .. _execmanywarning:
@@ -1913,9 +2089,9 @@ Connection Methods
         This method is only supported in node-oracledb Thick mode. See
         :ref:`enablingthick`.
 
-    SODA can be used with Oracle Database 18.3 and above, when node-oracledb
-    uses Oracle Client 18.5 or Oracle Client 19.3, or later. The SODA bulk
-    insert methods :meth:`sodaCollection.insertMany()` and
+    SODA can be used with Oracle Database 18.3 and later, when node-oracledb
+    uses Oracle Client 19.3 or later. The SODA bulk insert methods
+    :meth:`sodaCollection.insertMany()` and
     :meth:`sodaCollection.insertManyAndGet()` are in Preview status.
 
     See :ref:`Simple Oracle Document Access (SODA) <sodaoverview>` for more
@@ -2254,6 +2430,171 @@ Connection Methods
         * - Error ``error``
           - If ``rollback()`` succeeds, ``error`` is NULL. If an error occurs, then ``error`` contains the :ref:`error message <errorobj>`.
 
+.. method:: connection.runPipeline()
+
+    .. versionadded:: 7.0
+
+    **Promise**::
+
+        promise = runPipeline(Pipeline pipeline [, Boolean continueOnError]);
+
+    Runs all of the operations in the pipeline and returns an array,
+    each entry corresponding to an operation executed in the pipeline.
+
+    .. note::
+
+        True pipelining requires Oracle AI Database 26ai, or later.
+
+        When you connect to an older Oracle Database version or use
+        node-oracledb Thick mode, operations are sequentially executed by
+        node-oracledb. Each operation concludes before the next is sent to the
+        database. Requests are not queued on the database server, so the
+        latency and throughput benefits of true pipelining are not available.
+        This approach is recommended for code portability when upgrading to a
+        latest database version that supports pipelining.
+
+    See :ref:`pipelining` for more information.
+
+    The parameters of the ``connection.runPipeline()`` method are:
+
+    .. _runpipeline:
+
+    .. list-table-with-summary:: connection.runPipeline() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :summary: The first column displays the name of the parameter. The
+         second column displays the data type of the parameter. The third
+         column displays the description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``pipeline``
+          - Object
+          - .. _pipelinerunpipeline:
+
+            The pipeline to be run.
+        * - ``continueOnError``
+          - Boolean
+          - .. _continueonerror:
+
+            Determines whether operations should continue to run after an error has occurred.
+
+            If this parameter is set to *true*, the pipeline operations continue to run after the error occurs and the error is stored as a corresponding pipeline operation result. If this parameter is set to *false*, then an error will be raised as soon as it occurs in any pipeline operation and all subsequent operations will be terminated.
+
+            The default value is *false*.
+
+    **Callback**:
+
+    If you are using the callback programming style::
+
+        runPipeline(Pipeline pipeline [, Boolean continueOnError], function(Error error, Array results) {});
+
+    See :ref:`runpipeline` for information on the ``pipeline`` and
+    ``continueOnError`` parameters.
+
+    The parameters of the callback function ``function(Error error, Array results)`` are:
+
+    .. list-table-with-summary::
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 15 30
+        :summary: The first column displays the callback function parameter. The
+         second column displays the description of the parameter.
+
+        * - Callback Function Parameter
+          - Description
+        * - Error ``error``
+          - If ``runPipeline()`` succeeds, ``error`` is NULL. If an error occurs, then ``error`` contains the :ref:`error message <errorobj>`.
+        * - Array ``results``
+          - The array that contains the results of the executed pipeline operations.
+
+            See :ref:`runpipelineresultobj` for information on its properties.
+
+    **runPipeline() callback: result Object Properties**
+
+    The properties of result object from the ``runPipeline()`` callback are
+    described below.
+
+    .. _runpipelineresultobj:
+
+    .. list-table-with-summary:: runPipeline() callback: result Object Properties
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 15 30
+        :summary: The first column displays the name of the property. The
+         second column displays the description of the property.
+
+        * - Property
+          - Description
+        * - ``implicitResults``
+          - An array that will be defined if the statement executed in the operation returned Implicit Results.
+
+            See :ref:`Implicit Results <implicitresults>` for more information.
+        * - ``error``
+          - An :ref:`error <errorobj>` object that gives information about any error that was encountered when running the operation.
+
+            This property is only available if :ref:`continueOnError <continueonerror>` is set to *true* in :meth:`connection.runPipeline()`.
+        * - ``lastRowid``
+          - A string that identifies the ROWID of a row affected by an INSERT, UPDATE, DELETE, or MERGE statement executed in the operation.
+
+            If more than one row was affected, only the ROWID of the last row is returned.
+        * - ``metaData``
+          - An array describing each column in a query executed by the operation.
+
+            For SELECT statements, this contains an array of objects describing details of columns for the select list. For non-queries, this property is undefined. See :ref:`extended metadata <execmetadata>` for details on the information attributes.
+        * - ``outBinds``
+          - .. _resultobjrunpipeline:
+
+            An array or object that contains the output values of OUT and IN OUT binds used in an operation.
+        * - ``rows``
+          - An array that contains the rows that were fetched by the operation, if a query was executed.
+        * - ``rowsAffected``
+          - The number of rows that were affected by the operation.
+
+            For DML statements this contains the number of rows affected, for example, the number of rows inserted. For non-DML statements such as queries and PL/SQL statements, rowsAffected is undefined.
+        * - ``warning``
+          - An :ref:`error <errorobj>` object that gives information about any warning that was encountered when running the operation.
+
+.. method:: connection.setEndUserSecurityContext()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        setEndUserSecurityContext(Object context);
+
+    This synchronous method sets the end user security context on a connection
+    using the specified context.
+
+    Once this method is called, the specified end user security context is
+    applicable to all database operations performed on the connection.
+
+    See :ref:`deepdatasecurity`.
+
+    Currently, this method is only relevant to node-oracledb's Thin mode.
+
+    The parameters of the ``connection.setEndUserSecurityContext()`` are:
+
+    .. list-table-with-summary:: connection.setEndUserSecurityContext() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :width: 100%
+        :summary: The first column displays the name of the parameter. The second column displays the data type of the parameter. The third column displays the description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``context``
+          - Object
+          - The end user security context to be set on the connection.
+
 .. method:: connection.shutdown()
 
     .. versionadded:: 5.0
@@ -2577,7 +2918,7 @@ Connection Methods
         * - Error ``error``
           - If ``subscribe()`` succeeds, ``error`` is NULL. If an error occurs, then ``error`` contains the :ref:`error message <errorobj>`.
         * - Object ``result``
-          - For :ref:`CQN <cqn>` ``oracledb.SUBSCR_NAMESPACE_DBCHANGE`` subscriptions this contains a single property ``regId`` corresponding the value of ``REGID`` in the database view ``USER_CHANGE_NOTIFICATION_REGS`` or the value of ``REG_ID`` in ``USER_SUBSCR_REGISTRATIONS``. For :ref:`AQ <aq>` ``oracledb.SUBSCR_NAMESPACE_AQ`` subscriptions, ``regId`` is undefined. Due to Node.js type limitations, the largest ``regId`` shown will be 232 - 1. Larger values will wrap.
+          - For :ref:`CQN <cqn>` ``oracledb.SUBSCR_NAMESPACE_DBCHANGE`` subscriptions this contains a single property ``regId`` corresponding the value of ``REGID`` in the database view ``USER_CHANGE_NOTIFICATION_REGS`` or the value of ``REG_ID`` in ``USER_SUBSCR_REGISTRATIONS``. For :ref:`AQ <aq>` ``oracledb.SUBSCR_NAMESPACE_AQ`` subscriptions, ``regId`` is undefined. Due to Node.js type limitations, the largest ``regId`` shown will be 2 ^ 32 - 1. Larger values will wrap.
 
             .. versionadded:: 4.0
 

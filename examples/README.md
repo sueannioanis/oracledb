@@ -31,7 +31,7 @@ Autonomous Databases optionally. The wallet location can also be provided as a p
 - `NODE_ORACLEDB_CLIENT_LIB_DIR` provides an optional path for the Oracle Client libraries to be used on Windows and macOS platforms, when using Thick mode in node-oracledb.
 
 Review the examples and then run them individually.  For example, to see what
-  the file `example.js` does, navigate to the ``examples`` directory and use:
+  the file `example.js` does, navigate to the `examples` directory and use:
 
   ```
   node example.js
@@ -82,6 +82,7 @@ File Name                                                 | Description
 [`dbobjassocarray.js`](dbobjassocarray.js)                | Tests Associative Array-type dbObjects indexed by integer
 [`demodrop.js`](demodrop.js)                              | Drops the schema objects created by the examples
 [`demosetup.js`](demosetup.js)                            | Used to create common schema objects for the examples
+[`directpathload.js`](directpathload.js)                  | Show usage of directPathLoad api in thin mode
 [`dmlrupd.js`](dmlrupd.js)                                | Example of DML RETURNING where multiple rows are matched
 [`em_batcherrors.js`](em_batcherrors.js)                  | `executeMany()` example showing handling data errors
 [`em_dmlreturn1.js`](em_dmlreturn1.js)                    | `executeMany()` example of DML RETURNING that returns single values
@@ -103,6 +104,7 @@ File Name                                                 | Description
 [`lobinserttemp.js`](lobinserttemp.js)                    | Writes data to a Temporary CLOB and then inserts it into the database
 [`lobplsqltemp.js`](lobplsqltemp.js)                      | Streams data into a Temporary CLOB and then passes it to PL/SQL
 [`lobselect.js`](lobselect.js)                            | Shows basic, non-streaming CLOB and BLOB queries
+[`lobselect2.js`](lobselect2.js)                          | Shows basic, non-streaming CLOB and BLOB operations
 [`lobstream1.js`](lobstream1.js)                          | Shows how to stream LOBs to files
 [`lobstream2.js`](lobstream2.js)                          | Shows using Stream data events to fetch a CLOB
 [`lowercasecolumns.js`](lowercasecolumns.js)              | Shows how a type handler can convert column names to lower case
@@ -122,6 +124,7 @@ File Name                                                 | Description
 [`raw.js`](raw.js)                                        | Shows using a Buffer to insert and select a RAW
 [`refcursor.js`](refcursor.js)                            | Shows using a ResultSet to fetch rows from a REF CURSOR
 [`refcursortoquerystream.js`](refcursortoquerystream.js)  | Converts a REF CURSOR returned from `execute()` to a query stream.
+[`resourceMgmt.js`](resourceMgmt.js)                      | Example for using Explicit Resource Management feature of Node.js
 [`resultset1.js`](resultset1.js)                          | Executes a query and uses a ResultSet to fetch rows with `getRow()`
 [`resultset2.js`](resultset2.js)                          | Executes a query and uses a ResultSet to fetch batches of rows with `getRows()`
 [`resultsettoquerystream.js`](resultsettoquerystream.js)  | Converts a ResultSet returned from `execute()` into a Readable Stream.

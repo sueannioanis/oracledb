@@ -301,3 +301,11 @@ spec:
   - test/soda15.js
   - test/soda16.js
   - test/teq.js
+  - test/lobMethods.js
+  - test/directPathLoad.js
+  - test/tracePoolEvents.js
+  - test/explicitResourceMgmt.js
+  - test/pipeline.js
+  - test/sqlAssert.js
+  - test/appContext.js
+  - test/securityContext.js

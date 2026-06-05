@@ -220,8 +220,6 @@ connection should be ``HR``, use:
 
     await connection.close();
 
-Note this last case needs Oracle Client libraries version 18 or later.
-
 Using ``externalAuth`` in the ``connAttrs`` parameter of a
 ``pool.getConnection()`` call is not possible. The connections from a
 *Pool* object are always obtained in the manner in which the pool was
@@ -467,6 +465,11 @@ Cloud Infrastructure (OCI) Identity and Access Management
 Token-based authentication can be used for both standalone connections
 and connection pools.
 
+From node-oracledb 7.0 onwards, you can optionally specify a proxy user in the
+``user`` property by enclosing the name in square brackets, for example
+"[proxyuser]". This can be set in both standalone connections and connection
+pools when using OAuth 2.0 and OCI IAM token-based authentication.
+
 .. _iamtokenbasedauthentication:
 
 IAM Token-Based Authentication
@@ -606,7 +609,8 @@ using IAM token-based authentication.
         await oracledb.getConnection({
             accessToken    : tokenCallback,  // the callback returns the token object
             externalAuth   : true,           // must specify external authentication
-            connectString  : '...'           // Oracle Autonomous Database connection string
+            connectString  : '...',          // Oracle Autonomous Database connection string
+            user           : "[proxyuser]"   // optionally specify the proxy user
         });
     }
 
@@ -703,7 +707,8 @@ for example:
             accessToken   : tokenCallback,     // the callback returning the token
             externalAuth  : true,              // must specify external authentication
             homogeneous   : true,              // must use an homogeneous pool
-            connectString : connect_string     // Oracle Autonomous Database connection string
+            connectString : connect_string,    // Oracle Autonomous Database connection string
+            user          : "[proxyuser]"      // optionally specify the proxy user
         });
     }
 
@@ -1067,7 +1072,8 @@ authentication, for example:
         await oracledb.getConnection({
             accessToken   : tokenCallback,    // the callback returning the token
             externalAuth  : true,             // must specify external authentication
-            connectString : connect_string    // Oracle Autonomous Database connection string
+            connectString : connect_string,   // Oracle Autonomous Database connection string
+            user          : "[proxyuser]"     // optionally specify the proxy user
         });
     }
 
@@ -1162,7 +1168,8 @@ authentication, for example:
             accessToken   : tokenCallback,        // the callback returning the token
             externalAuth  : true,                 // must specify external authentication
             homogeneous   : true,                 // must use an homogeneous pool
-            connectString : '...'                 // Oracle Autonomous Database connection string
+            connectString : '...',                // Oracle Autonomous Database connection string
+            user          : "[proxyuser]"         // optionally specify the proxy user
         });
     }
 
@@ -1391,11 +1398,11 @@ node-oracledb's pre-supplied :ref:`extensionOci <extensionociplugin>` plugin.
 
 **Step 1: Create an OCI Compute Instance**
 
-An `OCI compute instance <https://docs.oracle.com/en-us/iaas/compute-cloud-at-
-customer/topics/compute/compute-instances.htm>`__ is a virtual machine running
-within OCI that provides compute resources for your application. This compute
-instance will be used to authenticate access to Oracle Cloud services when
-using Instance Principal Authentication.
+An `OCI compute instance <https://docs.oracle.com/en-us/iaas/Content/Compute/
+home.htm>`__ is a virtual machine running within OCI that provides compute
+resources for your application. This compute instance will be used to
+authenticate access to Oracle Cloud services when using Instance Principal
+Authentication.
 
 To create an OCI compute instance, see the steps in `Creating an Instance
 <https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/
@@ -1489,6 +1496,8 @@ centralized configuration providers are detailed in this section:
   <ociobjectstorageauthmethods>`
 
 - :ref:`Azure App Centralized Configuration Provider <azureappauthmethods>`
+
+- :ref:`AWS S3 and Secrets Manager Configuration Providers <awsauthmethods>`
 
 .. _ociobjectstorageauthmethods:
 
@@ -1599,3 +1608,39 @@ parameter *AZURE_MANAGED_IDENTITY_CLIENT_ID*. For more information on these
 parameters, see `Authentication Parameters for Azure App Configuration Store
 <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-1EECAD82-6CE5-
 4F4F-A844-C75C7AA1F907>`__.
+
+.. _awsauthmethods:
+
+AWS S3 and AWS Secrets Manager Configuration Providers Authentication
+---------------------------------------------------------------------
+
+An Amazon Web Service (AWS) authentication method can be used to access the
+:ref:`AWS Simple Storage Service (S3) <awss3>` and
+:ref:`AWS Secrets Manager <awssecretsmanager>` centralized configuration
+providers. The authentication to these configuration providers can be set by
+specifying the following AWS access keys:
+
+- AWS_ACCESS_KEY_ID: Specifies the Access Key ID.
+
+- AWS_SECRET_ACCESS_KEY: Specifies the Secret Access Key.
+
+- AWS_SESSION_TOKEN: Specifies a unique identifier for temporary credentials.
+
+See `AWS Access Keys <https://docs.aws.amazon.com/sdkref/latest/guide/feature-
+static-credentials.html>`__ for more information.
+
+These AWS Access Keys can be defined in:
+
+- A shared configuration file which can be stored in a default location
+  *~/.aws/config*. See `Format of the config file <https://docs.aws.amazon.com
+  /sdkref/latest/guide/file-format.html#file-format-config>`__ for more
+  information.
+
+- A shared credentials file which can be stored in a default location
+  *~/.aws/credetials*. See `Format of the credentials file <https://docs.aws.
+  amazon.com/sdkref/latest/guide/file-format.html#file-format-creds>`__ for
+  more information.
+
+- Environment variables. See `Using Environment Variables <https://docs.aws.
+  amazon.com/sdkref/latest/guide/environment-variables.html>`__ for more
+  information.

@@ -1,4 +1,4 @@
-// Copyright (c) 2019, 2025, Oracle and/or its affiliates.
+// Copyright (c) 2019, 2026, Oracle and/or its affiliates.
 
 //-----------------------------------------------------------------------------
 //
@@ -50,6 +50,9 @@
 #define isnan                   _isnan
 #endif
 #endif
+
+// maximum of two numbers
+#define NJS_MAX_NUM(a, b) ((a) > (b) ? (a) : (b))
 
 // maximum length of error messages
 #define NJS_MAX_ERROR_MSG_LEN           256
@@ -435,6 +438,7 @@ struct njsBaton {
     uint32_t lobType;
     uint32_t lobOffset;
     uint32_t lobAmount;
+    uint32_t newLobSize;
     uint32_t timeout;
     uint32_t qos;
     uint32_t operations;
@@ -771,6 +775,7 @@ struct njsTokenCallback {
     napi_ref jsCallback;
     napi_ref jsAccessTokenConfig;
     napi_env env;
+    bool notificationsStarted;
     bool result;
 };
 
@@ -956,6 +961,9 @@ bool njsUtils_getNamedPropertyShardingKey(napi_env env, napi_value value,
 bool njsUtils_getNamedPropertyAppContext(napi_env env, napi_value value,
         const char *name, uint32_t *numAppContextEntries,
         dpiAppContext **appContextEntries);
+bool njsUtils_parseKeyValueEntries(napi_env env, napi_value value,
+        const char *namespaceName, uint32_t namespaceNameLength,
+        uint32_t *numEntries, dpiAppContext **entries);
 bool njsUtils_getNamedPropertyString(napi_env env, napi_value value,
         const char *name, char **result, size_t *resultLength);
 bool njsUtils_getNamedPropertyStringArray(napi_env env, napi_value value,
@@ -1018,6 +1026,7 @@ bool njsVariable_setScalarValue(njsVariable *var, uint32_t pos, napi_env env,
 //-----------------------------------------------------------------------------
 int njsTokenCallback_eventHandler(njsTokenCallback *callback,
         dpiAccessToken *accessToken);
+bool njsTokenCallback_free(napi_env env, njsTokenCallback *callback);
 bool njsTokenCallback_new(njsBaton *baton, napi_env env,
         napi_value userCallback, napi_value accessTokenConfig);
 bool njsTokenCallback_startNotifications(njsTokenCallback *callback,

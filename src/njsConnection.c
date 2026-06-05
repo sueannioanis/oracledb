@@ -1,4 +1,4 @@
-// Copyright (c) 2015, 2025, Oracle and/or its affiliates.
+// Copyright (c) 2015, 2026, Oracle and/or its affiliates.
 
 //-----------------------------------------------------------------------------
 //
@@ -53,6 +53,7 @@ NJS_NAPI_METHOD_DECL_SYNC(njsConnection_getMaxOpenCursors);
 NJS_NAPI_METHOD_DECL_SYNC(njsConnection_getMaxIdentifierLength);
 NJS_NAPI_METHOD_DECL_SYNC(njsConnection_getOracleServerVersion);
 NJS_NAPI_METHOD_DECL_SYNC(njsConnection_getOracleServerVersionString);
+NJS_NAPI_METHOD_DECL_SYNC(njsConnection_getPdbName);
 NJS_NAPI_METHOD_DECL_ASYNC(njsConnection_getQueue);
 NJS_NAPI_METHOD_DECL_SYNC(njsConnection_getServiceName);
 NJS_NAPI_METHOD_DECL_SYNC(njsConnection_getSodaDatabase);
@@ -75,6 +76,8 @@ NJS_NAPI_METHOD_DECL_SYNC(njsConnection_setExternalName);
 NJS_NAPI_METHOD_DECL_SYNC(njsConnection_setInternalName);
 NJS_NAPI_METHOD_DECL_SYNC(njsConnection_setModule);
 NJS_NAPI_METHOD_DECL_SYNC(njsConnection_setTag);
+NJS_NAPI_METHOD_DECL_SYNC(njsConnection_appContext);
+NJS_NAPI_METHOD_DECL_SYNC(njsConnection_clearAppContext);
 NJS_NAPI_METHOD_DECL_ASYNC(njsConnection_shutdown);
 NJS_NAPI_METHOD_DECL_ASYNC(njsConnection_startSessionlessTransaction);
 NJS_NAPI_METHOD_DECL_ASYNC(njsConnection_startup);
@@ -131,9 +134,13 @@ static NJS_NAPI_FINALIZE(njsConnection_finalize);
 
 // properties defined by the class
 static const napi_property_descriptor njsClassProperties[] = {
+    { "appContext", NULL, njsConnection_appContext, NULL, NULL, NULL,
+            napi_default, NULL },
     { "breakExecution", NULL, njsConnection_breakExecution, NULL, NULL, NULL,
             napi_default, NULL },
     { "changePassword", NULL, njsConnection_changePassword, NULL, NULL,
+            NULL, napi_default, NULL },
+    { "clearAppContext", NULL, njsConnection_clearAppContext, NULL, NULL,
             NULL, napi_default, NULL },
     { "close", NULL, njsConnection_close, NULL, NULL, NULL,
             napi_default, NULL },
@@ -171,6 +178,8 @@ static const napi_property_descriptor njsClassProperties[] = {
             NULL, NULL, NULL, napi_default, NULL },
     { "getOracleServerVersionString", NULL,
             njsConnection_getOracleServerVersionString, NULL, NULL, NULL,
+            napi_default, NULL },
+    { "getPdbName", NULL, njsConnection_getPdbName, NULL, NULL, NULL,
             napi_default, NULL },
     { "getQueue", NULL, njsConnection_getQueue, NULL, NULL, NULL,
             napi_default, NULL },
@@ -1498,6 +1507,24 @@ NJS_NAPI_METHOD_IMPL_SYNC(njsConnection_getOracleServerVersionString, 0, NULL)
     return true;
 }
 
+//-----------------------------------------------------------------------------
+// njsConnection_getPdbName()
+//   Get the Pluggable Database Name of the current connection.
+//-----------------------------------------------------------------------------
+NJS_NAPI_METHOD_IMPL_SYNC(njsConnection_getPdbName, 0, NULL)
+{
+    njsConnection *conn = (njsConnection*) callingInstance;
+    uint32_t valueLength;
+    const char *value;
+
+    if (conn->handle) {
+        if (dpiConn_getPdbName(conn->handle, &value, &valueLength) < 0)
+            return njsUtils_throwErrorDPI(env, globals);
+        NJS_CHECK_NAPI(env, napi_create_string_utf8(env, value, valueLength,
+                returnValue))
+    }
+    return true;
+}
 
 //-----------------------------------------------------------------------------
 // njsConnection_getQueue()
@@ -2376,13 +2403,16 @@ static bool njsConnection_shutdownAsync(njsBaton *baton)
 NJS_NAPI_METHOD_IMPL_ASYNC(njsConnection_startSessionlessTransaction, 4, NULL)
 {
     void *buf;
+    size_t len;
+
     baton->sessionlessTransactionId = calloc(1,
         sizeof(dpiSessionlessTransactionId));
+    if (!baton->sessionlessTransactionId)
+        return njsBaton_setErrorInsufficientMemory(baton);
 
-    NJS_CHECK_NAPI(env, napi_get_buffer_info(env, args[0], &(buf),
-        (size_t*)&baton->sessionlessTransactionId->length));
-    strncpy(baton->sessionlessTransactionId->value, buf,
-        baton->sessionlessTransactionId->length);
+    NJS_CHECK_NAPI(env, napi_get_buffer_info(env, args[0], &buf, &len));
+    baton->sessionlessTransactionId->length = (uint32_t) len;
+    memcpy(baton->sessionlessTransactionId->value, buf, len);
     NJS_CHECK_NAPI(env, napi_get_value_uint32(env, args[1],
             &baton->sessionlessTimeout));
     NJS_CHECK_NAPI(env, napi_get_value_uint32(env, args[2],
@@ -2461,6 +2491,85 @@ static bool njsConnection_startupAsync(njsBaton *baton)
     return true;
 }
 
+NJS_NAPI_METHOD_IMPL_SYNC(njsConnection_clearAppContext, 1, NULL)
+{
+    size_t namespaceLen;
+    char *namespaceName = NULL;
+    napi_status status;
+    bool ok = false;
+    njsConnection *conn = (njsConnection*) callingInstance;
+
+    NJS_CHECK_NAPI(env, napi_get_value_string_utf8(env, args[0],
+            NULL, 0, &namespaceLen))
+    namespaceName = (char*) malloc(namespaceLen + 1);
+    if (!namespaceName)
+        return njsUtils_throwInsufficientMemory(env);
+
+    status = napi_get_value_string_utf8(env, args[0], namespaceName,
+            namespaceLen + 1, &namespaceLen);
+    if (status != napi_ok) {
+        njsUtils_genericThrowError(env, __FILE__, __LINE__);
+    } else if (dpiConn_clearAppContext(conn->handle, namespaceName,
+            (uint32_t) namespaceLen) < 0) {
+        njsUtils_throwErrorDPI(env, globals);
+    } else {
+        ok = true;
+    }
+
+    NJS_FREE_AND_CLEAR(namespaceName);
+    return ok;
+}
+
+
+NJS_NAPI_METHOD_IMPL_SYNC(njsConnection_appContext, 2, NULL)
+{
+    size_t namespaceLen;
+    char *namespaceName = NULL;
+    napi_status status;
+    bool result = false;
+    dpiAppContext *appContextEntries = NULL;
+    uint32_t numAppContextEntries = 0;
+    njsConnection *conn = (njsConnection *)callingInstance;
+
+    NJS_CHECK_NAPI(env, napi_get_value_string_utf8(env, args[0],
+            NULL, 0, &namespaceLen))
+    namespaceName = (char *) malloc(namespaceLen + 1);
+    if (!namespaceName)
+        return njsUtils_throwInsufficientMemory(env);
+
+    status = napi_get_value_string_utf8(env, args[0], namespaceName,
+            namespaceLen + 1, &namespaceLen);
+    if (status != napi_ok) {
+        njsUtils_genericThrowError(env, __FILE__, __LINE__);
+    } else {
+        bool parsed = njsUtils_parseKeyValueEntries(env, args[1],
+                namespaceName, (uint32_t) namespaceLen,
+                &numAppContextEntries, &appContextEntries);
+        if (parsed) {
+            if (numAppContextEntries == 0) {
+                result = true;
+            } else if (dpiConn_setAppContext(conn->handle,
+                    numAppContextEntries, appContextEntries) < 0) {
+                result = njsUtils_throwErrorDPI(env, globals);
+            } else {
+                result = true;
+            }
+        } else {
+            result = false;
+        }
+    }
+
+    NJS_FREE_AND_CLEAR(namespaceName);
+    if (appContextEntries) {
+        for (uint32_t i = 0; i < numAppContextEntries; i++) {
+            NJS_FREE_AND_CLEAR(appContextEntries[i].name);
+            NJS_FREE_AND_CLEAR(appContextEntries[i].value);
+        }
+        free(appContextEntries);
+    }
+
+    return result;
+}
 
 //-----------------------------------------------------------------------------
 // njsConnection_subscribe()

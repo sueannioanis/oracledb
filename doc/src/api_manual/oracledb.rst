@@ -989,28 +989,6 @@ Each of the configuration properties is described below.
         const oracledb = require('oracledb');
         oracledb.events = false;
 
-.. attribute:: oracledb.extendedMetaData
-
-    .. desupported:: 6.0
-
-    Extended metadata is now always returned
-
-    .. versionadded:: 1.10
-
-    This property is a boolean that determines whether additional metadata is
-    available for queries and for REF CURSORs returned from PL/SQL blocks.
-
-    The default value for ``extendedMetaData`` is *false*. With this value,
-    the :ref:`result.metaData <execmetadata>` and :attr:`resultSet.metaData`
-    objects only include column names.
-
-    If ``extendedMetaData`` is *true* then ``metaData`` will contain
-    additional attributes. These are listed in :ref:`Result Object
-    Properties <execmetadata>`.
-
-    This property may be overridden in an :ref:`execute() <executeoptions>`
-    call.
-
 .. attribute:: oracledb.externalAuth
 
     This property is a boolean value. If this property is *true* in
@@ -1454,12 +1432,12 @@ Each of the configuration properties is described below.
     The default value is *1*.
 
     With fixed-size :ref:`homogeneous <createpoolpoolattrshomogeneous>`
-    pools (where ``poolMin`` equals ``poolMax``), and when using Oracle Client
-    18c (or later) for node-oracledb Thick mode, you may wish to evaluate
-    setting ``poolIncrement`` greater than 1. This can expedite regrowth when
-    the number of :attr:`connections established <pool.connectionsOpen>` has
-    become lower than ``poolMin``, for example, when network issues cause
-    connections to become unusable and get them dropped from the pool.
+    pools (where ``poolMin`` equals ``poolMax``), and when using node-oracledb
+    Thick mode, you may wish to evaluate setting ``poolIncrement`` greater
+    than 1. This can expedite regrowth when the number of
+    :attr:`connections established <pool.connectionsOpen>` has become lower
+    than ``poolMin``, for example, when network issues cause connections to
+    become unusable and get them dropped from the pool.
 
     This property may be overridden when
     :meth:`creating a connection pool <oracledb.createPool()>`.
@@ -1523,9 +1501,6 @@ Each of the configuration properties is described below.
 
         This property can only be used in node-oracledb Thick mode. See
         :ref:`enablingthick`.
-
-    It is available when node-oracledb uses Oracle client libraries 18.3, or
-    later.
 
     **Example**
 
@@ -1605,9 +1580,6 @@ Each of the configuration properties is described below.
     :meth:`oracledb.createPool()`.
 
     See :ref:`Connection Pool Pinging <connpoolpinging>` for more discussion.
-
-    It was disabled when using Oracle Client 12.2 (and later) until
-    node-oracledb 3.0.
 
     **Example**
 
@@ -1880,6 +1852,60 @@ Each of the configuration properties is described below.
         const oracledb = require('oracledb');
         oracledb.terminal = 'myterminal';
 
+.. attribute:: oracledb.thickModeDSNPassthrough
+
+    .. versionadded:: 7.0
+
+    This property is a boolean that determines whether the connection strings
+    passed in the ``connectString`` property of
+    :meth:`oracledb.getConnection()` or :meth:`oracledb.createPool()` in
+    node-oracledb Thick mode will be parsed by Oracle Client libraries or
+    node-oracledb itself.
+
+    This property must be called before any standalone connection or pool is
+    created.
+
+    The default value is *true*.
+
+    When ``thickModeDSNPassthrough`` is set to the default value *true*, the
+    behavior of node-oracledb 6.10 and earlier versions occurs, that is,
+    node-oracledb Thick mode passes connect strings unchanged to the Oracle
+    Client libraries to handle. Those libraries have their own heuristics for
+    locating the optional tnsnames.ora, if used.
+
+    When ``thickModeDSNPassthrough`` is set to the value *false*,
+    node-oracledb Thick mode behaves similarly to Thin mode in regard to
+    connection string parameter handling and locating any optional
+    tnsnames.ora configuration file. This can be helpful for applications that
+    may be run in either mode:
+
+    - The search path used to locate and read any optional :ref:`tnsnames.ora
+      <tnsadmin>` file is handled in the node-oracledb driver. Different
+      :ref:`tnsnames.ora <tnsadmin>` files can be used by each connection.
+      Note loading of optional Thick mode files such as ``sqlnet.ora`` and
+      ``oraaccess.xml`` is always handled by Oracle Client libraries
+      regardless of the value of ``thickModeDSNPassthrough`` because it is
+      those libraries that use these files.
+
+    - All connect strings will be parsed by the node-oracledb driver and a
+      generated connect descriptor is sent to Oracle Client libraries.
+      Parameters unrecognized by node-oracledb in :ref:`Easy Connect strings
+      <easyconnect>` are discarded. For :ref:`Connect Descriptors <embedtns>`
+      passed explicitly as the ``connectString`` parameter value or stored in
+      a :ref:`tnsnames.ora <tnsadmin>` file, node-oracledb parses and
+      re-serializes the descriptor in order to apply supported overrides.
+      Parameters that are recognized and unrecognized by node-oracledb will be
+      passed unchanged to Oracle Client libraries.
+
+    See :ref:`setthickmodedsnpassthrough` for more information.
+
+    **Example**
+
+    .. code-block:: javascript
+
+        const oracledb = require('oracledb');
+        oracledb.thickModeDSNPassthrough = false;
+
 .. attribute:: oracledb.thin
 
     .. versionadded:: 6.0
@@ -2057,7 +2083,7 @@ Oracledb Methods
 
             When the callback is first invoked, the ``refresh`` parameter will be set to *false*. This indicates that the application can provide a token from its own application managed cache, or it can generate a new token if there is no cached value. Node-oracledb checks whether the returned token has expired. If it has expired, then the callback function will be invoked a second time with ``refresh`` set to *true*. In this case the function must externally acquire a token, optionally add it to the application’s cache, and return the token.
 
-            For token-based authentication, the ``externalAuth`` and ``homogeneous`` pool attributes must be set to *true*. The ``user`` (or ``username``) and ``password`` attributes should not be set.
+            For token-based authentication, the ``externalAuth`` and ``homogeneous`` pool attributes must be set to *true*. The ``password`` attribute should not be set. The ``user`` (or ``username``) attribute can be optionally set to a proxy user enclosed in square brackets, for example "[proxyuser]".
 
             See :ref:`Token-Based Authentication <tokenbasedauthentication>` for more information.
 
@@ -2068,30 +2094,12 @@ Oracledb Methods
             .. versionchanged:: 5.5
 
                 The ``accessToken`` property was extended to allow OAuth 2.0 token-based authentication in node-oracledb 5.5. For OAuth 2.0, the property should be a string, or a callback. For node-oracledb Thick mode, Oracle Client libraries 19.15 (or later), or 21.7 (or later) must be used. The callback usage supports both OAuth 2.0 and IAM token-based authentication.
-        * - ``accessTokenCallback``
-          - Object
-          - NA
-          - .. _createpoolpoolattrsaccesstokencallback:
-
-            This optional attribute is a Node.js callback function. It gets called by the connection pool if the pool needs to grow and create new connections but the current token has expired.
-
-            The callback function must return a JavaScript object with attributes ``token`` and ``privateKey`` for IAM. See :ref:`Connection Pool Creation with Access Tokens for IAM <iampool>`.
-
-            .. versionadded:: 5.4
-
-            It should be used with Oracle Client libraries 19.14 (or later), or 21.5 (or later).
-
-            .. deprecated:: 5.5
-
-            .. desupported:: 6.0
-
-            Use :ref:`accessToken <createpoolpoolattrsaccesstoken>` with a callback instead.
         * - ``accessTokenConfig``
           - Object
           - Both
           - .. _createpoolpoolattrsaccesstokenconfig:
 
-            An object containing the Azure-specific or OCI-specific parameters that need to be set when using the :ref:`Azure Software Development Kit (SDK) <oauthtokengeneration>` or :ref:`Oracle Cloud Infrastructure (OCI) SDK <iamtokengeneration>` for token generation. This property should only be specified when the :ref:`accessToken <createpoolpoolattrsaccesstoken>` property is a callback function. For more information on the Azure-specific parameters, see `sampleazuretokenauth.js <https://github.com/oracle/node-oracledb/tree/main/examples/sampleazuretokenauth.js>`__  and for the OCI-specific parameters, see `sampleocitokenauth.js <https://github.com/oracle/node-oracledb/tree/main/examples/sampleocitokenauth.js>`__.
+            An object containing the Azure-specific or OCI-specific parameters that need to be set when using the :ref:`Azure Software Development Kit (SDK) <oauthtokengeneration>` or :ref:`Oracle Cloud Infrastructure (OCI) SDK <iamtokengeneration>` for token generation. This property should only be specified when the :ref:`accessToken <createpoolpoolattrsaccesstoken>` property is a callback function. For more information on the Azure-specific parameters, see `azuretokenauth.js <https://github.com/oracle/node-oracledb/tree/main/examples/azuretokenauth.js>`__  and for the OCI-specific parameters, see `ocitokenauth.js <https://github.com/oracle/node-oracledb/tree/main/examples/ocitokenauth.js>`__.
 
             For OAuth2.0 token-based authentication and when using node-oracledb Thick mode, Oracle Client libraries 19.15 (or later), or 21.7 (or later) must be used. For IAM token-based authentication and when using node-oracledb Thick mode, Oracle Client libraries 19.14 (or later), or 21.5 (or later) are required.
 
@@ -2275,7 +2283,7 @@ Oracledb Methods
 
             The number of seconds that a pooled connection can exist in a pool after first being created. A value of *0* means there is no limit defined for the connection in a pool and no connections will be terminated. Connections become candidates for termination when they are acquired or released back to the pool, and have existed for longer than ``maxLifetimeSession`` seconds. Connections that are in active use will not be closed.
 
-            In node-oracledb Thick mode, Oracle Client libraries 12.1 or later must be used. Note that when using node-oracledb in Thick mode with Oracle Client libraries prior to 21c, pool shrinkage is only initiated when the pool is accessed. So, pools in fully dormant applications will not shrink until the application is next used.
+            Note that when using node-oracledb in Thick mode with Oracle Client libraries prior to 21c, pool shrinkage is only initiated when the pool is accessed. So, pools in fully dormant applications will not shrink until the application is next used.
 
             The default value is *0*.
 
@@ -2533,9 +2541,9 @@ Oracledb Methods
 
             The session callback is called before ``pool.getConnection()`` returns so it can be used for logging or to efficiently set session state, such as with ALTER SESSION statements. Make sure any session state is set and ``connection.tag`` is updated in the ``sessionCallback`` function prior to it calling its own ``callback()`` function otherwise the session will not be correctly set when ``getConnection()`` returns. The connection passed into ``sessionCallback`` should be passed out through ``callback()`` so it is returned from the application’s ``pool.getConnection()`` call.
 
-            When node-oracledb Thick mode is using Oracle Client libraries 12.2 or later, tags are `multi-property tags <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-DFA21225-E83C-4177-A79A-B8BA29DC662C>`__ with name=value pairs like “k1=v1;k2=v2”.
+            For node-oracledb Thick mode, tags are `multi-property tags <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-DFA21225-E83C-4177-A79A-B8BA29DC662C>`__ with name=value pairs like “k1=v1;k2=v2”.
 
-            When node-oracledb Thick mode is using Oracle Client libraries 12.2 or later, ``sessionCallback`` can be a string containing the name of a PL/SQL procedure to be called when ``pool.getConnection()`` requests a :ref:`tag <getconnectiondbattrstag>`, and that tag does not match the connection’s actual tag. When the application uses :ref:`DRCP connections <drcp>`, a PL/SQL callback can avoid the :ref:`round-trip <roundtrips>` calls that a Node.js function would require to set session state. For non-DRCP connections, the PL/SQL callback will require a round-trip from the application.
+            In node-oracledb Thick mode, ``sessionCallback`` can be a string containing the name of a PL/SQL procedure to be called when ``pool.getConnection()`` requests a :ref:`tag <getconnectiondbattrstag>`, and that tag does not match the connection’s actual tag. When the application uses :ref:`DRCP connections <drcp>`, a PL/SQL callback can avoid the :ref:`round-trip <roundtrips>` calls that a Node.js function would require to set session state. For non-DRCP connections, the PL/SQL callback will require a round-trip from the application.
 
             The PL/SQL procedure declaration is:
 
@@ -2953,6 +2961,99 @@ Oracledb Methods
         * - Pool ``pool``
           - The newly created connection pool. If ``createPool()`` fails, ``pool`` will be NULL. If the pool will be accessed via the :ref:`pool cache <connpoolcache>`, this parameter can be omitted. See :ref:`Pool class <poolclass>` for more information.
 
+.. method:: oracledb.enquoteLiteral()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        enquoteLiteral(String value);
+
+    This synchronous method returns the input value as a string that can safely
+    be included in a SQL statement as a string literal.
+
+    See :ref:`quoteliterals` for more information.
+
+    The parameters of the ``oracledb.enquoteLiteral()`` method are:
+
+    .. _enquoteliteral:
+
+    .. list-table-with-summary:: oracledb.enquoteLiteral() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :width: 100%
+        :summary: The first column displays the parameter. The second column
+         displays the data type of the parameter. The third column displays the
+         description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``value``
+          - String
+          - The value to be converted to a SQL string literal.
+
+            Embedded single quote characters are doubled. Non-string values fail standard parameter validation.
+
+    Use :ref:`bind variables <bind>` for values whenever possible. Use
+    :meth:`oracledb.enquoteLiteral()` when a SQL string literal must be
+    constructed explicitly.
+
+.. method:: oracledb.enquoteName()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        enquoteName(String name[, Boolean capitalize]);
+
+    This synchronous method returns the input string enclosed in double quotes
+    so it can be included in a SQL statement as an identifier.
+
+    See :ref:`quoteidentifiers` for more information.
+
+    The parameters of the ``oracledb.enquoteName()`` method are:
+
+    .. _enquotename:
+
+    .. list-table-with-summary:: oracledb.enquoteName() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :width: 100%
+        :summary: The first column displays the parameter. The second column
+         displays the data type of the parameter. The third column displays the
+         description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``name``
+          - String
+          - The string to be quoted for identifier use.
+
+            Any input containing a double quote character is rejected with the error ``NJS-183: invalid SQL name: embedded double quotes are not allowed``.
+
+            Non-string values fail standard parameter validation.
+        * - ``capitalize``
+          - Boolean
+          - Indicates whether the input string should be converted to uppercase using locale-independent Unicode rules before quoting.
+
+            The default value is *true*.
+
+    Uppercasing is done in the Node.js client and can differ from Oracle
+    Database ``DBMS_ASSERT.ENQUOTE_NAME()`` behavior for some characters,
+    because Oracle applies server-side rules that can depend on database or
+    session settings.
+
+    To validate an existing SQL name without changing it, use
+    :meth:`oracledb.isSimpleSqlName()` or
+    :meth:`oracledb.isQualifiedSqlName()`. Use :meth:`oracledb.enquoteName()`
+    to quote raw identifier text.
+
 .. method:: oracledb.getConnection()
 
     **Promise**::
@@ -3087,7 +3188,7 @@ Oracledb Methods
 
             For each connection, the callback is invoked with the ``refresh`` parameter set to *false*. This indicates that the application can provide a token from its own application managed cache, or it can generate a new token if there is no cached value. Node-oracledb checks whether the returned token has expired. If it has expired, then the callback function will be invoked a second time with ``refresh`` set to *true*. In this case, the function must externally acquire a token, optionally add it to the application’s cache, and return the token.
 
-            For token-based authentication, the ``externalAuth`` connection attribute must be set to *true*. The ``user`` (or ``username``) and ``password`` attributes should not be set.
+            For token-based authentication, the ``externalAuth`` connection attribute must be set to *true*. The ``password`` attribute should not be set. The ``user`` (or ``username``) attribute can be optionally set to a proxy user enclosed in square brackets, for example "[proxyuser]".
 
             See :ref:`Token-Based Authentication <tokenbasedauthentication>` for more information.
 
@@ -3103,7 +3204,7 @@ Oracledb Methods
           - Both
           - .. _getconnectiondbattrsaccesstokenconfig:
 
-            An object containing the Azure-specific or OCI-specific parameters that need to be set when using the :ref:`Azure Software Development Kit (SDK) <oauthtokengeneration>` or :ref:`Oracle Cloud Infrastructure (OCI) SDK <iamtokengeneration>` for token generation. This property should only be specified when the :ref:`accessToken <createpoolpoolattrsaccesstoken>` property is a callback function. For more information on the Azure-specific parameters, see `sampleazuretokenauth.js <https://github.com/oracle/node-oracledb/tree/main/examples/sampleazuretokenauth.js>`__  and for the OCI-specific parameters, see `sampleocitokenauth.js <https://github.com/oracle/node-oracledb/tree/main/examples/sampleocitokenauth.js>`__.
+            An object containing the Azure-specific or OCI-specific parameters that need to be set when using the :ref:`Azure Software Development Kit (SDK) <oauthtokengeneration>` or :ref:`Oracle Cloud Infrastructure (OCI) SDK <iamtokengeneration>` for token generation. This property should only be specified when the :ref:`accessToken <createpoolpoolattrsaccesstoken>` property is a callback function. For more information on the Azure-specific parameters, see `azuretokenauth.js <https://github.com/oracle/node-oracledb/tree/main/examples/azuretokenauth.js>`__  and for the OCI-specific parameters, see `ocitokenauth.js <https://github.com/oracle/node-oracledb/tree/main/examples/ocitokenauth.js>`__.
 
             For OAuth2.0 token-based authentication and when using node-oracledb Thick mode, Oracle Client libraries 19.15 (or later), or 21.7 (or later) must be used. For IAM token-based authentication and when using node-oracledb Thick mode, Oracle Client libraries 19.14 (or later), or 21.5 (or later) are required.
 
@@ -3974,6 +4075,82 @@ Oracledb Methods
     path, such as from running ``ldconfig`` or set in the environment
     variable ``LD_LIBRARY_PATH``.
 
+.. method:: oracledb.isQualifiedSqlName()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        isQualifiedSqlName(String name);
+
+    This synchronous method returns whether the input string is a qualified SQL
+    name.
+
+    See :ref:`validatequalifiedsql` for more information.
+
+    The parameters of the ``oracledb.isQualifiedSqlName()`` method are:
+
+    .. _isqualifiedsqlname:
+
+    .. list-table-with-summary:: oracledb.isQualifiedSqlName() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :width: 100%
+        :summary: The first column displays the parameter. The second column
+         displays the data type of the parameter. The third column displays the
+         description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``name``
+          - String
+          - The string to be validated.
+
+            Leading and trailing whitespace is ignored. Each component must be a valid simple SQL name. Components may be separated by dots, and one optional trailing '@' database link name is allowed; the database link name can itself be dotted.
+
+            Invalid SQL name strings return *false*. Non-string values fail standard parameter validation.
+
+.. method:: oracledb.isSimpleSqlName()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        isSimpleSqlName(String name);
+
+    This synchronous method returns whether the input string is a simple SQL
+    name.
+
+    See :ref:`validatesimplesql` for more information.
+
+    The parameters of the ``oracledb.isSimpleSqlName()`` method are:
+
+    .. _issimplesqlname:
+
+    .. list-table-with-summary:: oracledb.isSimpleSqlName() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :width: 100%
+        :summary: The first column displays the parameter. The second column
+         displays the data type of the parameter. The third column displays the
+         description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``name``
+          - String
+          - The string to be validated.
+
+            Leading and trailing whitespace is ignored. Valid names are either unquoted identifiers that begin with a Unicode letter and then use Unicode letters, Unicode combining marks, Unicode digits, '_', '$', or '#', or quoted identifiers enclosed in double quotes with no embedded double quotes or the NUL character ('\u0000').
+
+            Invalid SQL name strings return *false*. Non-string values fail standard parameter validation.
+
 .. method:: oracledb.registerConfigurationProviderHook()
 
     .. versionadded:: 6.9
@@ -4012,8 +4189,8 @@ Oracledb Methods
           - String
           - The centralized configuration provider extension that needs to be
             accessed. The value can be the string "ociobject", "ocivault",
-            "azure", or "azurevault" which are the pre-supplied node-oracledb
-            configuration provider extensions.
+            "azure", "azurevault", "awss3", or "awssecretsmanager" which are
+            the pre-supplied node-oracledb configuration provider extensions.
         * - ``fn``
           - Function
           - The hook function that needs to be registered. This hook
@@ -4523,6 +4700,294 @@ TraceHandlerBase Methods
         * - ``traceContext``
           - Object
           - The trace context details. This includes connection configuration details, call level details, and additional attribute details.
+
+.. method:: onPoolAcquire()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        onPoolAcquire(Object pool);
+
+    Called when a connection is successfully acquired from the pool. This
+    method is useful for tracking the number of connections that are currently
+    checked out from the connection pool and in use. Note that this is a
+    synchronous method.
+
+    The parameters of the ``onPoolAcquire()`` method are:
+
+    .. _onpoolacquire:
+
+    .. list-table-with-summary:: onPoolAcquire() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :summary: The first column displays the parameter. The second column
+         displays the data type of the parameter. The third column displays
+         the description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``pool``
+          - Object
+          - The :ref:`connection pool <poolclass>` object that is used to retrieve connection pool statistics.
+
+.. method:: onPoolClose()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        onPoolClose(Object pool);
+
+    Called when a pool is closed. This method is useful for tracking shutdown
+    events or resetting counters. Note that this is a synchronous method.
+
+    The parameters of the ``onPoolClose()`` method are:
+
+    .. _onpoolclose:
+
+    .. list-table-with-summary:: onPoolClose() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :summary: The first column displays the parameter. The second column
+         displays the data type of the parameter. The third column displays
+         the description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``pool``
+          - Object
+          - The :ref:`connection pool <poolclass>` object that is used to retrieve connection pool statistics.
+
+.. method:: onPoolConnectionHit()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        onPoolConnectionHit(Object pool);
+
+    Called when a requested connection is obtained from the pool's free list
+    (cache hit). This method is useful for analyzing connection reuse. Note
+    that this is a synchronous method.
+
+    The parameters of the ``onPoolConnectionHit()`` method are:
+
+    .. _onpoolconnectionhit:
+
+    .. list-table-with-summary:: onPoolConnectionHit() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :summary: The first column displays the parameter. The second column
+         displays the data type of the parameter. The third column displays
+         the description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``pool``
+          - Object
+          - The :ref:`connection pool <poolclass>` object that is used to retrieve connection pool statistics.
+
+.. method:: onPoolConnectionMiss()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        onPoolConnectionMiss(Object pool);
+
+    Called when a connection request requires creating a new connection (cache
+    miss). This method is useful for analyzing connection reuse. Note that
+    this is a synchronous method.
+
+    The parameters of the ``onPoolConnectionMiss()`` method are:
+
+    .. _onpoolconnectionmiss:
+
+    .. list-table-with-summary:: onPoolConnectionMiss() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :summary: The first column displays the parameter. The second column
+         displays the data type of the parameter. The third column displays
+         the description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``pool``
+          - Object
+          - The :ref:`connection pool <poolclass>` object that is used to retrieve connection pool statistics.
+
+.. method:: onPoolExpand()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        onPoolExpand(Object pool);
+
+    Called when a pool expands by creating new connections. This method is
+    useful to track pool growth or initialization activity. Note that this is
+    a synchronous method.
+
+    The parameters of the ``onPoolExpand()`` method are:
+
+    .. _onpoolexpand:
+
+    .. list-table-with-summary:: onPoolExpand() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :summary: The first column displays the parameter. The second column
+         displays the data type of the parameter. The third column displays
+         the description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``pool``
+          - Object
+          - The :ref:`connection pool <poolclass>` object that is used to retrieve connection pool statistics.
+
+.. method:: onPoolRelease()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        onPoolRelease(Object pool);
+
+    Called when a connection is released back to the pool. This method is
+    useful for monitoring returned or idle connections. Note that this is a
+    synchronous method.
+
+    The parameters of the ``onPoolRelease()`` method are:
+
+    .. _onpoolrelease:
+
+    .. list-table-with-summary:: onPoolRelease() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :summary: The first column displays the parameter. The second column
+         displays the data type of the parameter. The third column displays
+         the description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``pool``
+          - Object
+          - The :ref:`connection pool <poolclass>` object that is used to retrieve connection pool statistics.
+
+.. method:: onPoolRequestTimeout()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        onPoolRequestTimeout(Object pool);
+
+    Called when a queued connection request times out before it can be served.
+    This method is useful for tracking request timeouts or failures. Note that
+    this is a synchronous method.
+
+    The parameters of the ``onPoolRequestTimeout()`` method are:
+
+    .. _onpoolrequesttimeout:
+
+    .. list-table-with-summary:: onPoolRequestTimeout() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :summary: The first column displays the parameter. The second column
+         displays the data type of the parameter. The third column displays
+         the description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``pool``
+          - Object
+          - The :ref:`connection pool <poolclass>` object that is used to retrieve connection pool statistics.
+
+.. method:: onPoolShrink()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        onPoolShrink(Object pool);
+
+    Called when a pool shrinks and a connection is removed, such as during
+    timeouts or pool resizing. This method is useful for monitoring resource
+    cleanup or shrink events. Note that this is a synchronous method.
+
+    The parameters of the ``onPoolRequestShrink()`` method are:
+
+    .. _onpoolshrink:
+
+    .. list-table-with-summary:: onPoolShrink() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :summary: The first column displays the parameter. The second column
+         displays the data type of the parameter. The third column displays
+         the description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``pool``
+          - Object
+          - The :ref:`connection pool <poolclass>` object that is used to retrieve connection pool statistics.
+
+.. method:: onPoolWait()
+
+    .. versionadded:: 7.0
+
+    .. code-block:: javascript
+
+        onPoolWait(Object pool);
+
+    Called when a connection request is queued because the pool cannot grow
+    further. This method is useful for monitoring queued requests. Note that
+    this is a synchronous method.
+
+    The parameters of the ``onPoolWait()`` method are:
+
+    .. _onpoolwait:
+
+    .. list-table-with-summary:: onPoolWait() Parameters
+        :header-rows: 1
+        :class: wy-table-responsive
+        :align: center
+        :widths: 10 10 30
+        :summary: The first column displays the parameter. The second column
+         displays the data type of the parameter. The third column displays
+         the description of the parameter.
+
+        * - Parameter
+          - Data Type
+          - Description
+        * - ``pool``
+          - Object
+          - The :ref:`connection pool <poolclass>` object that is used to retrieve connection pool statistics.
 
 .. _tracehandler:
 

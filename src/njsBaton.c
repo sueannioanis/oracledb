@@ -1,4 +1,4 @@
-// Copyright (c) 2015, 2025, Oracle and/or its affiliates.
+// Copyright (c) 2015, 2026, Oracle and/or its affiliates.
 
 //-----------------------------------------------------------------------------
 //
@@ -180,6 +180,7 @@ static void njsBaton_executeAsync(napi_env env, void *data)
 //-----------------------------------------------------------------------------
 void njsBaton_free(njsBaton *baton, napi_env env)
 {
+    njsImplicitResult *currImplicitResult;
     uint32_t i;
 
     // free and clear strings
@@ -325,18 +326,19 @@ void njsBaton_free(njsBaton *baton, napi_env env)
 
     // free implicit results
     while (baton->implicitResults) {
-        if (baton->implicitResults->stmt) {
-            dpiStmt_release(baton->implicitResults->stmt);
-            baton->implicitResults->stmt = NULL;
+        currImplicitResult = baton->implicitResults;
+        baton->implicitResults = currImplicitResult->next;
+        if (currImplicitResult->stmt) {
+            dpiStmt_release(currImplicitResult->stmt);
+            currImplicitResult->stmt = NULL;
         }
-        if (baton->implicitResults->queryVars) {
-            for (i = 0; i < baton->implicitResults->numQueryVars; i++)
-                njsVariable_free(&baton->implicitResults->queryVars[i]);
-            free(baton->implicitResults->queryVars);
-            baton->implicitResults->queryVars = NULL;
+        if (currImplicitResult->queryVars) {
+            for (i = 0; i < currImplicitResult->numQueryVars; i++)
+                njsVariable_free(&currImplicitResult->queryVars[i]);
+            free(currImplicitResult->queryVars);
+            currImplicitResult->queryVars = NULL;
         }
-        free(baton->implicitResults);
-        baton->implicitResults = baton->implicitResults->next;
+        free(currImplicitResult);
     }
 
     // remove references to JS objects
@@ -344,6 +346,10 @@ void njsBaton_free(njsBaton *baton, napi_env env)
     NJS_DELETE_REF_AND_CLEAR(baton->jsCallingObjRef);
     NJS_DELETE_REF_AND_CLEAR(baton->jsSubscriptionRef);
     NJS_DELETE_REF_AND_CLEAR(baton->jsExecuteOptionsRef);
+    if (baton->accessTokenCallback) {
+        njsTokenCallback_free(env, baton->accessTokenCallback);
+        baton->accessTokenCallback = NULL;
+    }
     if (baton->asyncWork) {
         napi_delete_async_work(env, baton->asyncWork);
         baton->asyncWork = NULL;
@@ -644,7 +650,7 @@ bool njsBaton_getVectorValue(njsBaton *baton, dpiVector *vector,
     if (dpiVector_getValue(vector, &vectorInfo) < 0) {
         return njsBaton_setErrorDPI(baton);
     }
-    if (vectorInfo.numSparseValues) {
+    if (vectorInfo.isSparse) {
         // For sparse number of non-zero elements.
         numElem = vectorInfo.numSparseValues;
     } else {
@@ -674,19 +680,23 @@ bool njsBaton_getVectorValue(njsBaton *baton, dpiVector *vector,
             return njsBaton_setErrorUnsupportedVectorFormat
                             (baton, vectorInfo.format);
     }
-    if (vectorInfo.numSparseValues) {
+    if (vectorInfo.isSparse) {
         // Create values property.
         byteLength = elementLength * numElem;
         NJS_CHECK_NAPI(env, napi_create_arraybuffer(env, byteLength,
                 &destData, &arrBuf))
-        memcpy(destData, vectorInfo.dimensions.asPtr, byteLength);
+        if (byteLength > 0) {
+            memcpy(destData, vectorInfo.dimensions.asPtr, byteLength);
+        }
         NJS_CHECK_NAPI(env, napi_create_typedarray(env, type,
                 numElem, arrBuf, bufferOffset, &valueArray))
 
         //Create indices property.
         NJS_CHECK_NAPI(env, napi_create_arraybuffer(env, 4 * numElem,
                 &destDataIndices, &arrBufIndices))
-        memcpy(destDataIndices, vectorInfo.sparseIndices, 4 * numElem);
+        if (numElem > 0) {
+            memcpy(destDataIndices, vectorInfo.sparseIndices, 4 * numElem);
+        }
         NJS_CHECK_NAPI(env, napi_create_typedarray(env, napi_uint32_array,
                 numElem, arrBufIndices, bufferOffset, &indexArray))
 
@@ -703,7 +713,9 @@ bool njsBaton_getVectorValue(njsBaton *baton, dpiVector *vector,
         byteLength = elementLength * numElem;
         NJS_CHECK_NAPI(env, napi_create_arraybuffer(env, byteLength,
                 &destData, &arrBuf))
-        memcpy(destData, vectorInfo.dimensions.asPtr, byteLength);
+        if (byteLength > 0) {
+            memcpy(destData, vectorInfo.dimensions.asPtr, byteLength);
+        }
         NJS_CHECK_NAPI(env, napi_create_typedarray(env, type, numElem, arrBuf,
                 bufferOffset, value))
     }

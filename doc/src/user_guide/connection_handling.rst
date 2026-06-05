@@ -185,6 +185,22 @@ required to open a connection. For example, to return an error after 15 seconds
 if a connection cannot be established to the database, use
 ``"mydbmachine.example.com/orclpdb1?connect_timeout=15"``.
 
+**Node-oracledb Settings in Easy Connect Strings**
+
+Some node-oracledb connection method API parameters can alternatively be
+passed as Easy Connect parameters with a "njs."  prefix.  For example, to set
+the statement cache size used by connections:
+
+.. code-block:: javascript
+
+    const connection = await oracledb.getConnection({
+        user          : "hr",
+        password      : mypw,  // mypw contains the hr schema password
+        connectString : "mydbmachine.example.com/orclpdb1?njs.stmtCacheSize=50"
+    });
+
+See :ref:`njsparams` for the usable attributes.
+
 .. _embedtns:
 
 Connect Descriptors
@@ -200,6 +216,16 @@ For example:
         password      : mypw,  // mypw contains the hr schema password
         connectString : "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=mymachine.example.com)(PORT=1521))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=orcl)))"
     });
+
+When a connect descriptor is specified in the ``connectString`` property as
+shown in the example above, the maximum length of the ``DESCRIPTION``
+parameter is *4096* bytes and its maximum nesting depth (maximum level of
+sub-sections inside the DESCRIPTION section + 1) is *64*. If either limit is
+exceeded, an error is raised.
+
+Any ``DESCRIPTION``, ``CONNECT_DATA`` and ``SECURITY`` parameters of a connect
+descriptor that are not recognized by node-oracledb are passed to the database
+unchanged.
 
 .. _tnsnames:
 
@@ -295,9 +321,11 @@ A :ref:`Centralized Configuration Provider <configurationprovider>` URL
 connection string allows node-oracledb configuration information to be stored
 centrally in :ref:`OCI Object Storage <ociobjstorage>`,
 :ref:`OCI Vault <ocivault>`, :ref:`local file <fileconfigprovider>`,
-:ref:`Azure App Configuration <azureappconfig>`, or in a
-:ref:`Azure Key Vault <azurekeyvault>`. Using a provider URL, node-oracledb
-will access the information stored in the configuration provider
+:ref:`Azure App Configuration <azureappconfig>`,
+:ref:`Azure Key Vault <azurekeyvault>`,
+:ref:`Amazon Web Service (AWS) Simple Storage Service (S3) <awss3>`, or
+:ref:`AWS Secrets Manager <awssecretsmanager>`. Using a provider URL,
+node-oracledb will access the information stored in the configuration provider
 and use it to connect to Oracle Database.
 
 The database connect descriptor and any database credentials stored in a
@@ -308,8 +336,9 @@ other sections.
 
 The Centralized Configuration Provider URL must begin with
 "config-<configuration-provider>://" where the configuration-provider value
-can be set to *ociobject*, *ocivault*, *file*, *azure*, or *azurevault*
-depending on the location of your configuration information.
+can be set to *ociobject*, *ocivault*, *file*, *azure*, *azurevault*, *awss3*,
+or *awssecretsmanager* depending on the location of your configuration
+information.
 
 For example, consider the following connection configuration stored in
 :ref:`OCI Object Storage <ociobjstorage>`:
@@ -414,6 +443,142 @@ This can be referenced in node-oracledb:
         connectString : "finance"
     });
 
+.. _njsparams:
+
+Node-oracledb Parameters Settable in Easy Connect Strings
+---------------------------------------------------------
+
+Some node-oracledb connection and pool creation parameters can be set in
+:ref:`Easy Connect strings <easyconnect>`. This is an alternative to
+passing explicit arguments to :meth:`oracledb.getConnection()` or
+:meth:`oracledb.createPool()`. This allows application behavior to be changed
+without needing application code to be updated.
+
+The connection and pool creation parameters are set in an Easy Connect String
+by using a "njs." prefix before the parameter name and are listed in the
+:ref:`_params_ez_table` table.
+
+The parameter names set in the Easy Connect are similar to the node-oracledb
+method parameter names, but have a "njs."  prefix. For example:
+
+.. code-block:: javascript
+
+    const connection = await oracledb.getConnection({
+        user          : "hr",
+        password      : mypw,  // mypw contains the hr schema password
+        connectString : "mydbmachine.example.com:1984/orclpdb1?njs.stmtCacheSize=30&njs.driverName=myDriver"
+    });
+
+is the same as:
+
+.. code-block:: javascript
+
+    const connection = await oracledb.getConnection({
+        user          : "hr",
+        password      : mypw,  // mypw contains the hr schema password
+        connectString : "mydbmachine.example.com:1984/orclpdb1",
+        stmtCacheSize : 30,
+        driverName    : "myDriver"
+    });
+
+If a parameter is specified multiple times in an Easy Connect string, then the
+last value of that parameter is used. For example, in
+"localhost/orclpdb?njs.stmtCacheSize=10&njs.stmtCacheSize=20", the statement
+cache size is set to *20*.
+
+The parameters that are defined in an Easy Connect string will take precedence
+over the value passed as the equivalent node-oracledb API parameter. For
+example, if the ``poolMax`` and ``retry_count`` parameter were set in the
+``connectString`` property of :meth:`oracledb.createPool()` to
+"mydbmachine.example.com:1984/orclpdb1?**njs.poolMax=10&retry_count=20&**"
+and the ``poolMax`` and ``retryCount`` parameters were set to *5* and *10* in
+:meth:`oracledb.createPool()`, then maximum number of connections in a pool
+and retry count are set to the values in the Easy Connect String, that is *10*
+and *20* respectively.
+
+Parameters that apply to :ref:`pool creation <connpooling>` will be ignored if
+they are used in the context of :ref:`standalone connections
+<standaloneconnection>`.  Parameters with unknown names will be ignored in both
+cases.
+
+The connection and pool creation parameters settable in Easy Connect strings
+with prefix "njs." are:
+
+.. list-table-with-summary:: Usable Node-oracledb parameters Easy Connect Strings
+    :header-rows: 1
+    :class: wy-table-responsive
+    :align: center
+    :width: 100%
+    :name:  _params_ez_table
+    :summary: The first column displays the node-oracledb parameter name. The second column displays the type of the parameter. The third column displays whether the parameter can be used in standalone and pool connection creation.
+
+    * - Node-oracledb Parameter Name
+      - Type
+      - Notes
+    * - ``driverName``
+      - String
+      - Standalone and pool connection creation
+    * - ``edition``
+      - String
+      - Standalone and pool connection creation
+    * - ``events``
+      - Boolean
+      - Standalone and pool connection creation
+    * - ``externalAuth``
+      - Boolean
+      - Standalone and pool connection creation
+    * - ``homogeneous``
+      - Boolean
+      - Pool connection creation only
+    * - ``machine``
+      - String
+      - Standalone and pool connection creation
+    * - ``maxLifetimeSession``
+      - Number
+      - Pool connection creation only
+    * - ``osUser``
+      - String
+      - Standalone and pool connection creation
+    * - ``poolIncrement``
+      - Number
+      - Pool connection creation only
+    * - ``poolMax``
+      - Number
+      - Pool connection creation only
+    * - ``poolMaxPerShard``
+      - Number
+      - Pool connection creation only
+    * - ``poolMin``
+      - Number
+      - Pool connection creation only
+    * - ``poolPingInterval``
+      - Number
+      - Pool connection creation only
+    * - ``poolPingTimeout``
+      - Number
+      - Pool connection creation only
+    * - ``poolTimeout``
+      - Number
+      - Pool connection creation only
+    * - ``program``
+      - String
+      - Standalone and pool connection creation
+    * - ``queueTimeout``
+      - Number
+      - Pool connection creation only
+    * - ``sodaMetaDataCache``
+      - Boolean
+      - Pool connection creation only
+    * - ``stmtCacheSize``
+      - Number
+      - Standalone and pool connection creation
+    * - ``terminal``
+      - String
+      - Standalone and pool connection creation
+
+Note that these parameters can only be used with the prefix "njs." in Easy
+Connect strings and not in :ref:`Connect Descriptors <embedtns>`.
+
 .. _authentication:
 
 Authenticating to Oracle Database
@@ -456,6 +621,19 @@ The following configuration providers are supported by node-oracledb:
 - :ref:`Oracle Cloud Infrastructure (OCI) Vault <ocivault>`
 - :ref:`Microsoft Azure App Configuration <azureappconfig>`
 - :ref:`Microsoft Azure Key Vault <azurekeyvault>`
+- :ref:`Amazon Web Service (AWS) Simple Storage Service (S3) <awss3>`
+- :ref:`AWS Secrets Manager <awssecretsmanager>`
+
+To use Centralized Configuration Provider functionality in node-oracledb Thick
+mode, you should set :attr:`oracledb.thickModeDSNPassthrough` to *false*.
+
+Note: In Thick mode, when :attr:`oracledb.thickModeDSNPassthrough` is *true*,
+it is the Oracle Client libraries that access the configuration provider when
+node-oracledb connection or pool creation methods are invoked. Any
+node-oracledb parameter section will be ignored. Any Oracle Client Interface
+parameter section should be removed from the configuration because its values
+may be different to those that node-oracledb assumes, and will cause undefined
+behavior.
 
 .. _configurationinformation:
 
@@ -483,7 +661,7 @@ below.
 
         The password of the database user.
 
-        For :ref:`OCI Object Storage <ociobjstorage>`, :ref:`OCI Vault <ocivault>`, :ref:`Azure Key Vault <azurekeyvault>`, and :ref:`File <fileconfigprovider>` configuration providers, the value is an object which contains the following parameters:
+        For :ref:`OCI Object Storage <ociobjstorage>`, :ref:`OCI Vault <ocivault>`, :ref:`Azure Key Vault <azurekeyvault>`, :ref:`File <fileconfigprovider>`, :ref:`AWS S3 <awss3>` configuration providers, and :ref:`AWS Secrets Manager <awssecretsmanager>`, the value is an object which contains the following parameters:
 
         - ``type``: The possible values of this required parameter are *ocivault*, *azurevault*, *base64*, and *text*.
 
@@ -495,7 +673,7 @@ below.
 
         .. warning::
 
-            Storing passwords of type *base64* or *text* in the JSON file for File, OCI Object Storage, and Azure App Configuration  configuration providers should only ever be used in development or test environments. It can be used with Azure Vault and OCI Vault configuration providers.
+            Storing passwords of type *base64* or *text* in the JSON file for File, OCI Object Storage, Azure App, and AWS S3 configuration providers should only ever be used in development or test environments. It can be used with Azure Vault, OCI Vault, and AWS Secrets Manager configuration providers.
       - Optional
     * - ``connect_descriptor``
       - The database :ref:`connect descriptor <embedtns>`.
@@ -503,7 +681,7 @@ below.
     * - ``wallet_location``
       - The reference to the wallet.
 
-        For :ref:`OCI Object Storage <ociobjstorage>`, :ref:`OCI Vault <ocivault>`, :ref:`Azure Key Vault <azurekeyvault>`, and :ref:`File <fileconfigprovider>` configuration providers, the value is an object itself and contains the same parameters that are listed in the :ref:`password <passwordparams>` parameter. This can only be used in node-oracledb Thin mode.
+        For :ref:`File <fileconfigprovider>`, :ref:`OCI Object Storage <ociobjstorage>`, :ref:`OCI Vault <ocivault>`, :ref:`Azure Key Vault <azurekeyvault>`, :ref:`AWS S3 <awss3>`, and :ref:`AWS Secrets Manager <awssecretsmanager>` configuration providers, the value is an object itself and contains the same parameters that are listed in the :ref:`password <passwordparams>` parameter. This can only be used in node-oracledb Thin mode.
 
         For :ref:`Azure App Configuration <azureappconfig>`, this parameter is the reference to the Azure Key Vault and Secret that contains the wallet as the value.
       - Optional
@@ -513,7 +691,7 @@ below.
         .. versionadded:: 6.10
       - Optional
     * - ``njs``
-      - The node-oracledb specific properties. The properties that can be stored in OCI Object Storage include ``poolMin``, ``poolMax``, ``poolIncrement``, ``poolTimeout``, ``poolPingInterval``, ``poolPingTimeout``, ``stmtCacheSize``, ``prefetchRows``, and ``lobPrefetch``.
+      - The node-oracledb specific properties. The properties that can be stored include ``poolMin``, ``poolMax``, ``poolIncrement``, ``poolTimeout``, ``poolPingInterval``, ``poolPingTimeout``, ``stmtCacheSize``, ``prefetchRows``, and ``lobPrefetch``.
       - Optional
 
 **Precedence of Properties**
@@ -583,7 +761,7 @@ Provider is:
         "user": "scott",
         "password": {
           "type": "base64",
-          "value": "dGlnZXI="
+          "value": "***xyz"
         }
         "njs": {
             "stmtCacheSize": 30,
@@ -655,7 +833,7 @@ Multiple alias names can be defined in a JSON file as shown below:
             "user": "scott",
             "password": {
               "type": "base64",
-              "value": "dGlnZXI="
+              "value": "***xyz"
             }
         }
     }
@@ -1126,6 +1304,263 @@ below.
       - The authentication method and its corresponding parameters to access the Azure Key Vault Configuration provider. You can specify one of the following authentication methods: Default Azure Credential, Service Principal with Client Secret, Service Principal with Client Certificate, and Managed Identity. See :ref:`azureappauthmethods` for more information on these authentication methods and their corresponding parameters.
       - Optional
 
+.. _awss3:
+
+Using an Amazon Web Service (AWS) Simple Storage Service (S3) Centralized Configuration Provider
+------------------------------------------------------------------------------------------------
+
+The Amazon Web Service (AWS) `Simple Storage Service (S3) configuration
+provider <https://docs.aws.amazon.com/AmazonS3/latest/userguide/
+Welcome.html>`__ enables the storage and management of Oracle Database
+connection information as JSON. This configuration provider support was
+introduced in node-oracledb 7.0.
+
+Before using AWS S3, you must set the following environment variables:
+
+- *AWS_REGION* which specifies the AWS S3 bucket region.
+
+- *HTTPS_PROXY* which specifies the proxy value that is required in a
+  protected environment.
+
+- *AWS_PROFILE* which specifies the name of the AWS profile to use from
+  ~/.aws/credentials.
+
+When setting the above environment variables, you must authenticate with the
+*AWS_ACCESS_KEY_ID*, *AWS_SECRET_ACCESS_KEY*, and *AWS_SESSION_TOKEN*
+environment variables. See :ref:`awsauthmethods`.
+
+To use an AWS S3, you must:
+
+1. Upload a JSON file that contains the connection information into an S3
+   Bucket. See :ref:`Connection Information for AWS S3 Centralized
+   Configuration Provider <awss3configparams>`.
+
+   Also, see `Uploading objects <https://docs.aws.amazon.com/AmazonS3/latest/
+   userguide/upload-objects.html>`__ for the steps.
+
+2. Install the required AWS S3 modules. See :ref:`awss3modules`.
+
+3. Load the :ref:`awss3 <awss3plugin>` plugin in your application using
+   ``require('oracledb/plugins/configProviders/awss3')``.
+
+4. :ref:`Use an AWS S3 connection string URL <connstringawss3>` in the
+   ``connectString`` property of connection and pool creation methods.
+
+Note that node-oracledb caches configurations by default, see
+:ref:`conncaching`.
+
+.. _awss3configparams:
+
+**Connection Information for AWS S3 Configuration Provider**
+
+The connection information stored in a JSON file must contain a
+``connect_descriptor`` key. Optionally, you can specify the database user
+name, password, and node-oracledb properties. For details on the information
+that can be stored in this configuration provider, see
+:ref:`_configuration_information`.
+
+.. _exampleawss3:
+
+An example of a JSON file that can be used with AWS S3 Configuration Provider is:
+
+.. code-block:: json
+
+    {
+        "connect_descriptor": "(description=(retry_count=20)(retry_delay=3)(address=(protocol=tcps)(port=1521)
+                (host=adb.region.oraclecloud.com))(connect_data=(service_name=dbsvcname))
+                (security=(ssl_server_dn_match=yes)))",
+
+        "user": "scott",
+        "password": {
+            "type": "base64",
+            "value": "***xyz"
+        },
+        "njs": {
+            "stmtCacheSize": 30,
+            "prefetchRows": 2,
+            "poolMin": 2,
+            "poolMax": 10
+        }
+    }
+
+This encodes the password as base64.
+
+.. _connstringawss3:
+
+**AWS S3 Centralized Configuration Provider connectString Syntax**
+
+The ``connectString`` parameter for :meth:`oracledb.getConnection()` and
+:meth:`oracledb.createPool()` calls should use a connection string URL in the
+format::
+
+    config-awss3://s3://<bucketName>/<keyName>?<options>
+
+For example, a connection string to access AWS S3 and connect to Oracle
+Database is:
+
+.. code-block:: javascript
+
+    const connection = await oracledb.getConnection({
+        connectString : "config-awss3://s3://my-bucket/sample.json?aws_region=us-east-1"
+    });
+
+The parameters of the connection string URL format are detailed in the table
+below.
+
+.. list-table-with-summary:: Connection String Parameters for AWS S3
+    :header-rows: 1
+    :class: wy-table-responsive
+    :widths: 15 25 15
+    :name: _connection_string_for_aws_s3
+    :summary: The first row displays the name of the connection string parameter. The second row displays the description of the connection string parameter. The third row displays whether the connection string parameter is required or optional.
+
+    * - Parameter
+      - Description
+      - Required or Optional
+    * - config-awss3
+      - Indicates that the configuration provider is AWS S3.
+      - Required
+    * - <bucketName>
+      - The AWS S3 bucket name where the JSON file is stored.
+      - Required
+    * - <keyName>
+      - The JSON file name.
+      - Required
+    * - <options>
+      - The region of the AWS S3 bucket.
+      - Optional
+
+.. _awssecretsmanager:
+
+Using an AWS Secrets Manager Centralized Configuration Provider
+---------------------------------------------------------------
+
+The Amazon Web Service (AWS) `Secrets Manager configuration provider
+<https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html>`__
+enables the storage and management of Oracle Database connection information
+as JSON. This configuration provider support was introduced in node-oracledb
+7.0.
+
+To use an AWS Secrets Manager, you must:
+
+1. Enter and save the connection information as a secret in AWS Secrets
+   Manager console. The connection information must be entered as a JSON
+   object. See :ref:`Connection Information for AWS Secrets Manager
+   Centralized Configuration Provider <awssecretsmanagerconfigparams>`.
+
+   Also, see `Create an AWS Secrets Manager secret <https://docs.aws.amazon.
+   com/secretsmanager/latest/userguide/create_secret.html>`__ for the steps.
+
+2. Install the required AWS Secrets Manager modules. See
+   :ref:`awssecretsmanagermodules`.
+
+3. Load the :ref:`awssecretsmanager <awssecretsmanagerplugin>` plugin in your
+   application using
+   ``require('oracledb/plugins/configProviders/awssecretsmanager')``.
+
+4. :ref:`Use an AWS Secrets Manager connection string URL
+   <connstringawssecretsmanager>` in the ``connectString`` property of
+   connection and pool creation methods.
+
+Note that node-oracledb caches configurations by default, see
+:ref:`conncaching`.
+
+.. _awssecretsmanagerconfigparams:
+
+**Connection Information for AWS Secrets Manager Configuration Provider**
+
+The connection information stored in a JSON file must contain a
+``connect_descriptor`` key. Optionally, you can specify the database user
+name, password, and node-oracledb properties. For details on the information
+that can be stored in this configuration provider, see
+:ref:`_configuration_information`.
+
+.. _exampleawssecretsmanager:
+
+An example of a JSON file that can be used with AWS Secrets Manager
+Configuration Provider is:
+
+.. code-block:: json
+
+    {
+        "connect_descriptor": "(description=(retry_count=20)(retry_delay=3)(address=(protocol=tcps)(port=1521)
+                (host=adb.region.oraclecloud.com))(connect_data=(service_name=dbsvcname))
+                (security=(ssl_server_dn_match=yes)))",
+
+        "user": "scott",
+        "password": {
+            "type": "base64",
+            "value": "***xyz"
+        },
+        "njs": {
+            "stmtCacheSize": 30,
+            "prefetchRows": 2,
+            "poolMin": 2,
+            "poolMax": 10
+        }
+    }
+
+This encodes the password as base64.
+
+.. _connstringawssecretsmanager:
+
+**AWS Secrets Manager Centralized Configuration Provider connectString Syntax**
+
+The ``connectString`` parameter for :meth:`oracledb.getConnection()` and
+:meth:`oracledb.createPool()` calls should use a connection string URL in the
+format::
+
+    config-awssecretsmanager://<secret_name>[?aws_region=<region>&aws_profile=<profile>&versionid=<version-id>&https_proxy=<proxy-host-or-url>&https_proxy_port=<proxy-port>]
+
+For example, a connection string to access AWS Secrets Manager and connect to
+Oracle Database is:
+
+.. code-block:: javascript
+
+    const connection = await oracledb.getConnection({
+        connectString : "config-awssecretsmanager://my-db-secret?aws_region=us-east-1&aws_profile=prod&versionid=1234ab...xz"
+    });
+
+The parameters of the connection string URL format are detailed in the table
+below.
+
+.. list-table-with-summary:: Connection String Parameters for AWS Secrets Manager
+    :header-rows: 1
+    :class: wy-table-responsive
+    :widths: 15 25 15
+    :name: _connection_string_for_aws_secrets_manager
+    :summary: The first row displays the name of the connection string parameter. The second row displays the description of the connection string parameter. The third row displays whether the connection string parameter is required or optional.
+
+    * - Parameter
+      - Description
+      - Required or Optional
+    * - config-awssecretsmanager
+      - Indicates that the configuration provider is AWS Secrets Manager.
+      - Required
+    * - <secret_name>
+      - The AWS Secrets Manager secret name or secret Amazon Resource Name (ARN).
+      - Required
+    * - aws_region=<region>
+      - The AWS region to use for the Secrets Manager client.
+      - Optional
+    * - aws_profile=<profile>
+      - The AWS profile to use when resolving AWS credentials and region from local AWS configuration files.
+      - Optional
+    * - versionid=<version-id>
+      - The specific AWS Secrets Manager secret version to retrieve. If not specified, AWS Secrets Manager returns the *AWSCURRENT* version.
+      - Optional
+    * - https_proxy=<proxy-host-or-url>
+      - The HTTPS proxy host or full proxy URL for AWS SDK traffic. If the value does not include a URL scheme, *http://* is added automatically.
+      - Optional
+    * - https_proxy_port=<proxy-port>
+      - The proxy port. This is used only when the ``https_proxy`` value does not already include a port.
+      - Optional
+
+Note that *AWS_REGION*, *HTTPS_PROXY*, and *AWS_PROFILE* environment variables
+can also be set instead of the corresponding connection string parameters. If
+you set these, then you need to set the authentication environment variables.
+See :ref:`awsauthmethods`.
+
 .. _conncaching:
 
 Caching Configuration Information
@@ -1353,11 +1788,22 @@ An application context stores user-specific information on the database that
 can enable or prevent a user from accessing data. See `About Application
 Contexts <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-
 6745DB10-F540-45D7-9761-9E8F342F1435>`__ in the Oracle Database documentation.
-Node-oracledb supports application contexts from version 6.9 onwards.
 
 An application context has a namespace and a key-value pair. The namespace
 *CLIENTCONTEXT* is reserved for use with client session-based application
-contexts. Single or multiple application context values can be set when
+contexts. In node-oracledb, you can set an application context during
+:ref:`connection creation <appcontextconncreate>` or on a
+:ref:`connection <appcontextconnobjcreate>` object.
+
+.. _appcontextconncreate:
+
+Setting Application Contexts During Connection Creation
+-------------------------------------------------------
+
+Node-oracledb supports setting application contexts during connection creation
+from version 6.9 onwards.
+
+Single or multiple application context values can be set when
 connecting to the database by using the
 :ref:`appContext <getconnectiondbattrsappcontext>` property in
 :meth:`oracledb.getConnection()` in both node-oracledb Thin and Thick modes.
@@ -1418,6 +1864,297 @@ support setting or working with application contexts. You also cannot set
 application contexts with application-side connection pools in Thick mode.
 The application context setting is ignored in these cases.
 
+.. _appcontextconnobjcreate:
+
+Setting Application Contexts on a Connection Object
+---------------------------------------------------
+
+From node-oracledb version 7.0 onwards, you can set an application context on
+a :ref:`Connection <connectionclass>` object after it has been created. This
+can be done with the :meth:`connection.appContext()` method by setting the
+namespace and key-value pairs for an application context as shown in the
+example below:
+
+.. code-block:: javascript
+
+    const connection = await oracledb.getConnection({
+      user: "hr",
+      password: mypw, // contains the hr schema password
+      connectString: "mydbmachine.example.com/orclpdb1",
+    });
+
+    connection.appContext("CLIENTCONTEXT", // namespace
+      [
+        { traceCtx: "12" },  // key-value pairs
+        { version: "1" },
+      ]);
+
+Application context values set on a connection can be queried in your
+applications, for example:
+
+.. code-block:: javascript
+
+    const result = await connection.execute(
+        `SELECT SYS_CONTEXT('CLIENTCONTEXT', 'traceCtx') AS ctx_val FROM dual`
+    );
+
+    console.log(result.rows[0]);
+
+This query prints ``[ '12' ]``.
+
+The application context can be seen in the Oracle Database table `V$CONTEXT
+<https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-0DC7F6C7-B5F9-
+4467-9518-0B98876588B3>`__ by a DBA with the following query:
+
+.. code-block:: sql
+
+    SELECT attribute, value FROM v$context WHERE namespace = 'CLIENTCONTEXT';
+
+Setting an empty ``namespace`` parameter and specifying the key-value pairs
+will raise the error ``NJS-184: The namespace can not be empty for Application
+Context``.
+
+The ``NJS-005`` error is raised when you set the ``namespace`` parameter to
+*null* or *undefined*, and also when you set non-array values in the
+``keyValues`` parameter.
+
+To clear the application context set on a connection, use
+:meth:`connection.clearAppContext()`. This clears all key-value information in
+a namespace of the application context. For example:
+
+.. code-block:: javascript
+
+    connection.clearAppContext("CLIENTCONTEXT");
+
+Querying the application context values after using
+:meth:`connection.clearAppContext()` set on a connection, will return
+``[ null ]``.
+
+**Behavior Differences in Thin and Thick Modes**
+
+A namespace other than "CLIENTCONTEXT" will raise the ``ORA-28267`` error
+in both Thin and Thick modes. In node-oracledb Thin mode, this error is raised
+by :meth:`connection.execute()`, while in Thick mode, it is raised by
+:meth:`connection.appContext()`.
+
+In node-oracledb Thin mode, if an empty array is passed to the ``keyValues``
+parameter, the call to :meth:`connection.appContext()` succeeds, but an
+``ORA-01031`` error is raised on a subsequent call to
+:meth:`connection.execute()`. In Thick mode, no error is raised and
+:meth:`connection.execute()` succeeds, but querying the application context
+returns *null* if no key-value pairs were set in ``keyValues``, or returns
+previously set values if they exist. To clear application context values, it
+is recommended to use :meth:`connection.clearAppContext()` instead of passing
+an empty array to the ``keyValues`` parameter.
+
+.. _deepdatasecurity:
+
+Deep Data Security
+==================
+
+Oracle Deep Data Security is a database-enforced data authorization framework
+which enables you to specify application-level security requirements directly
+at the database layer. Deep Data Security ensures fine-grained and end-to-end
+user access control at the row, column, and cell levels. Deep Data Security
+requires Oracle Database 26ai.
+
+.. note::
+
+    Oracle Deep Data Security is only supported in node-oracledb Thin mode.
+
+With Deep Data Security, an application sends a specific set of identity and
+authorization details called end user security context to the database. The
+details that can be defined in an end user security context are an end user
+identity, a database access token, data roles, and end user context
+attributes. These parameters are detailed in the subsequent sections. The end
+user security context can be defined on a connection. Once defined, the
+database uses these end user details to authorize and grant access to the
+data. See `Oracle Deep Data Security <https://www.oracle.com/pls/topic/lookup?
+ctx=dblatest&id=GUID-E239A5C4-0C0D-4FF0-98DD-2E374F79C63C>`__ in the Oracle
+Deep Data Security Configuration Guide for more information.
+
+Creating an End User Security Context
+-------------------------------------
+
+An End User Security Context can be created for a user managed by an external
+Identity and Access Management (IAM) system such as Oracle Cloud Infrastructure
+(OCI) IAM or Microsoft Entra ID, or a user locally created in Oracle Database.
+
+To create an end user security context for a user, you must create an
+EndUserSecurityContext object using the
+:ref:`Oracledb EndUserSecurityContext class <endusersecuritycontextclass>`.
+For example:
+
+.. code-block:: javascript
+
+    const user_context = new oracledb.EndUserSecurityContext({
+        databaseAccessToken: "<db_token_issued_by_an_IAM>",
+        endUserToken: "<end_user_token>",
+        dataRoles: [<names_of_roles>],
+        attributes: {
+          <"attribute_name">: <value>
+        },
+    });
+
+The following attributes can be defined in an EndUserSecurityContext object:
+
+- ``databaseAccessToken``: A token that authenticates your application with
+  the database. This token is issued by your Identity and Access Management
+  (IAM) system. This attribute is required.
+
+- ``endUserToken``: A token that identifies the end user. This token is issued
+  by your IAM system after user authentication. This attribute must be
+  specified for users managed by external IAM systems. Do not set this
+  attribute if the ``endUserName`` and ``key`` attributes are defined.
+
+- ``endUserName``: The name of a local database user created in Oracle
+  Database that has the ``CREATE END USER SECURITY CONTEXT`` database
+  privilege set. This attribute must be specified for users managed by Oracle
+  Database. Do not set this attribute if the ``endUserToken`` attribute is
+  set.
+
+- ``key``: The lookup identifier that the database maps to stored context
+  attributes. You must set this attribute if the ``endUserName`` attribute is
+  specified.
+
+- ``dataRoles``: The names of data roles granted to the application or local
+  database user. This attribute is optional. If ``endUserName`` and ``key``
+  are specified, then only data roles enabled by default with the application
+  identity are used. Any data roles explicitly provided by the application are
+  not accepted and will raise an error.
+
+- ``attributes``: The attribute-value pairs conforming to the END USER CONTEXT
+  schema defined in the database. These can be referenced at runtime by
+  authorization policies (for example, in data grant predicates) and
+  application logic. This attribute is optional.
+
+.. note::
+
+    Note that you must set either the ``endUserToken`` attribute, or both
+    ``endUserName`` and ``key`` in the EndUserSecurityContext object. Setting
+    both of these parameters will raise an error.
+
+For detailed information on these attributes, see this
+:ref:`table <_end_user_security_context_parameters>`.
+
+Setting an End User Security Context
+------------------------------------
+
+To set an end user security context on a connection, use
+:meth:`connection.setEndUserSecurityContext()`. This method must be called
+after creating a standalone connection using :meth:`oracledb.getConnection()`,
+or after acquiring a connection from a pool using
+:meth:`pool.getConnection()`.
+
+Once :meth:`~connection.setEndUserSecurityContext()` is called, the specified
+security context applies to all the subsequent database operations executed on
+that connection for that end user.
+
+An example of setting an end user security context for a standalone
+connection is shown below:
+
+.. code-block:: javascript
+
+    const connection = await oracledb.getConnection({
+      user: "hr",
+      password: mypw, // contains the hr schema password
+      connectString: "mydbmachine.example.com/orclpdb1",
+      walletLocation: "/opt/OracleCloud/MYDB", // location of pem file
+      walletPassword: wp
+    });
+
+    connection.setEndUserSecurityContext(user_context);
+
+An example of setting an end user security context for a connection pool is:
+
+.. code-block:: javascript
+
+    const pool = await oracledb.createPool({
+      user          : "hr",
+      password      : mypw,  // mypw contains the hr schema password
+      connectString : "mydbmachine.example.com/orclpdb1",
+      poolIncrement: 1,
+      poolMin: 1,
+      poolMax: 5,
+      walletLocation: "/opt/OracleCloud/MYDB",
+      walletPassword: wp
+    });
+
+    const connection = await pool.getConnection();
+
+    connection.setEndUserSecurityContext(user_context);
+
+Using :meth:`connection.setEndUserSecurityContext()` in node-oracledb Thick
+mode will raise the error ``NJS-089: setting End User Security Context is not
+supported by node-oracledb in Thick mode``.
+
+Clearing an End User Security Context
+-------------------------------------
+
+To clear an end user security context set by a previous call to
+:meth:`connection.setEndUserSecurityContext()`, use
+:meth:`connection.clearEndUserSecurityContext()`. For example:
+
+.. code-block:: javascript
+
+    connection.clearEndUserSecurityContext();
+
+This reverts the connection to its original state in which subsequent database
+operations are executed on the connection without any end user security
+context.
+
+Using this method in node-oracledb Thick mode will raise the error ``NJS-089:
+clearing End User Security Context is not supported by node-oracledb in Thick
+mode``.
+
+Calling :meth:`connection.clearEndUserSecurityContext()` without previously
+setting an end user security context using
+:meth:`connection.setEndUserSecurityContext()` has no effect and does not
+raise an error.
+
+Example of Using End User Security Context
+------------------------------------------
+
+An example of using an end user security context is:
+
+.. code-block:: javascript
+
+    // Create an end user security context
+    const context = new oracledb.EndUserSecurityContext({
+      databaseAccessToken: "db-token-plain",
+      endUserToken: "user-token-plain",
+      dataRoles: ["HR_DYNAMIC_ROLE", "FINANCE_DYNAMIC_ROLE"],
+      attributes: {
+        region: ["us", "uk"],
+        department: "finance",
+      },
+    });
+
+    // Create a standalone connection
+    const connection = await oracledb.getConnection({
+      user: "hr",
+      password: mypw, // contains the hr schema password
+      connectString: "mydbmachine.example.com/orclpdb1",
+      walletPassword: WALLET_PASSWORD,
+      walletLocation: WALLET_LOCATION
+    });
+
+    // Set the end user security context on a connection
+    connection.setEndUserSecurityContext(context);
+
+    // Execute a database operation within the end user security context
+    const result1 = await connection.execute(`SELECT 1 FROM dual`);
+
+    // Clear the end user security context
+    // Subsequent database operations run without the end user security context
+    connection.clearEndUserSecurityContext();
+
+    // Execute a database operation without the end user security context
+    const result2 = await connection.execute(`SELECT 2 FROM dual`);
+
+    // Close the connection
+    await connection.close();
+
 .. _pooled-connections:
 .. _connpooling:
 
@@ -1474,7 +2211,7 @@ The pooling solutions available to node-oracledb applications are:
   when applications are not performing database work. It then allows the
   associated database server process to be used by another connection that
   needs to do a database operation. Implicit Connection Pooling is available
-  from Oracle Database version 23 onwards.
+  from Oracle Database 26ai onwards.
 
   Implicit Connection Pooling is useful for legacy applications or third-party
   code that cannot be updated to use a driver connection pool.
@@ -1749,9 +2486,9 @@ is called and both the following are true:
 Pool shrinkage happens when the application returns connections to the pool,
 and they are then unused for more than :attr:`~oracledb.poolTimeout`
 seconds. Any excess connections above ``poolMin`` will be closed. When
-node-oracledb Thick mode is using using Oracle Client 19 or earlier, this pool
-shrinkage is only initiated when the pool is accessed, so a pool in a
-completely idle application will not shrink.
+node-oracledb Thick mode is using Oracle Client 19, this pool shrinkage is
+only initiated when the pool is accessed, so a pool in a completely idle
+application will not shrink.
 
 For pools created with :ref:`External Authentication <extauth>`, with
 :ref:`homogeneous <createpoolpoolattrshomogeneous>` set to *false*, or
@@ -1785,8 +2522,7 @@ usage. The pool attributes should be adjusted to handle the desired workload
 within the bounds of resources available to Node.js and the database.
 
 When the values of ``poolMin`` and ``poolMax`` are the same, ``poolIncrement``
-can be set greater than zero. (In Thick mode this needs Oracle Client 18c or
-later).  This value changes how a :ref:`homogeneous pool
+can be set greater than zero. This value changes how a :ref:`homogeneous pool
 <createpoolpoolattrshomogeneous>` grows when the number of :attr:`connections
 established <pool.connectionsOpen>` has become lower than ``poolMin``, for
 example if network issues have caused connections to become unusable and they
@@ -1806,12 +2542,10 @@ for defensive programming to mitigate against unforeseeable problems that may
 occur with connections. If a connection was created ``maxLifetimeSession`` or
 longer seconds ago, then it will be a candidate for being closed.
 
-In node-oracledb Thick mode, Oracle Client libraries 12.1, or later, are
-needed to use
-:ref:`maxLifetimeSession <createpoolpoolattrsmaxlifetimesession>`. Note that
-when using node-oracledb in Thick mode with Oracle Client libraries prior to
-21c, pool shrinkage is only initiated when the pool is accessed. So, pools in
-fully dormant applications will not shrink until the application is next used.
+Note that when using node-oracledb in Thick mode with Oracle Client libraries
+prior to 21c, pool shrinkage is only initiated when the pool is accessed. So,
+pools in fully dormant applications will not shrink until the application is
+next used.
 
 If both :ref:`poolTimeout <createpoolpoolattrspooltimeout>` and
 :ref:`maxLifetimeSession <createpoolpoolattrsmaxlifetimesession>` properties
@@ -2391,9 +3125,8 @@ validation checks help provide tolerance against this situation so that
 statement execution using a connection is more likely to succeed.
 
 Each time ``getConnection()`` is called, a lightweight connection validity
-check occurs. (In node-oracledb Thick mode, this requires Oracle Client library
-version 12.2 or later).  The lightweight check allows node-oracledb to detect
-and replace connections that have become unusable due to some network errors.
+check occurs. The lightweight check allows node-oracledb to detect and replace
+connections that have become unusable due to some network errors.
 
 An additional internal check performed by ``getConnection()`` can be configured
 during pool creation.  This extra check helps detect errors such as the
@@ -2456,9 +3189,7 @@ to use appropriate statement execution error checking.
 For ultimate scalability, disable explicit pool pinging by setting
 ``poolPingInterval`` to a negative value, and make sure the firewall, database
 resource manager, or user profile are not expiring idle connections. See
-:ref:`Preventing Premature Connection Closing <connectionpremclose>`.  When
-using node-oracledb Thick mode, use use Oracle client 12.2 (or later)
-libraries.
+:ref:`Preventing Premature Connection Closing <connectionpremclose>`.
 
 In all cases, when a bad connection is released back to the pool with
 :meth:`connection.close()`, the connection is automatically destroyed.
@@ -2585,19 +3316,17 @@ already initialized connection with the requested tag could be low, so
 most ``pool.getConnection()`` calls would return a connection needing
 its session reset, and tag management will just add overhead.
 
-When node-oracledb is using Oracle Client libraries 12.2 or later, then
-node-oracledb uses ‘multi-property tags’ and the tag string must be of
-the form of one or more “name=value” pairs separated by a semi-colon,
-for example ``"loc=uk;lang=cy"``. The Oracle `session
-pool <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-F9662FFB
--EAEF-495C-96FC-49C6D1D9625C>`__ used by node-oracledb has various heuristics
-to determine which connection is returned to the application. Refer to the
-`multi-property tags documentation <https://www.oracle.com/pls/topic/lookup?
-ctx=dblatest&id=GUID-DFA21225-E83C-4177-A79A-B8BA29DC662C>`__.
-The callback function can parse the requested multi-property tag and
-compare it with the connection’s actual properties in
-:attr:`connection.tag` to determine what exact state to
-set and what value to update ``connection.tag`` to.
+Node-oracledb Thick mode uses ‘multi-property tags’ and the tag string must be
+of the form of one or more “name=value” pairs separated by a semi-colon, for
+example ``"loc=uk;lang=cy"``. The Oracle `session pool <https://www.oracle.com
+/pls/topic/lookup?ctx=dblatest&id=GUID-F9662FFB-EAEF-495C-96FC-
+49C6D1D9625C>`__ used by node-oracledb has various heuristics to determine
+which connection is returned to the application. Refer to the `multi-property
+tags documentation <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=
+GUID-DFA21225-E83C-4177-A79A-B8BA29DC662C>`__. The callback function can parse
+the requested multi-property tag and compare it with the connection’s actual
+properties in :attr:`connection.tag` to determine what exact state to set and
+what value to update ``connection.tag`` to.
 
 .. _sessionfixupnode:
 
@@ -2731,14 +3460,12 @@ PL/SQL Session Tagging Callback
 When using :ref:`DRCP <drcp>`, tagging is most efficient when using a
 PL/SQL callback.
 
-When node-oracledb is using Oracle Client libraries 12.2 or later,
-``sessionCallback`` can be a string containing the name of a PL/SQL
-procedure that is called when the requested tag does not match the
-actual tag in the connection. When the application uses :ref:`DRCP
-connections <drcp>`, a PL/SQL callback can avoid the
-:ref:`round-trip <roundtrips>` calls that a Node.js function would require
-to set session state. For non-DRCP connections, the PL/SQL callback will
-require a round-trip from the application.
+The ``sessionCallback`` can be a string containing the name of a PL/SQL
+procedure that is called when the requested tag does not match the actual tag
+in the connection. When the application uses :ref:`DRCP connections <drcp>`, a
+PL/SQL callback can avoid the :ref:`round-trip <roundtrips>` calls that a
+Node.js function would require to set session state. For non-DRCP connections,
+the PL/SQL callback will require a round-trip from the application.
 
 After a PL/SQL callback completes and ``pool.getConnection()`` returns,
 :attr:`connection.tag` will have the same property values
@@ -2954,13 +3681,14 @@ creation.
 
 Pre-supplied node-oracledb plugins such as :ref:`OCI Object Storage
 (ociobject) <ociobjectplugin>`, :ref:`OCI Vault (ocivault) <ocivaultplugin>`,
-:ref:`Azure App Configuration (azure) <azureplugin>`, and
-:ref:`Azure Key Vault (azurevault) <azurevaultplugin>` make use of
-:meth:`oracledb.registerConfigurationProviderHook()`. These plugins use the
-information found in a connection method's ``connectString`` property which
-allows node-oracledb to access the required information from the configuration
-provider, and connect to Oracle Database with this information. For the
-complete plugin implementation, see the respective folders of the
+:ref:`Azure App Configuration (azure) <azureplugin>`,
+:ref:`Azure Key Vault (azurevault) <azurevaultplugin>`, and
+:ref:`Amazon Web Service (AWS) Simple Storage Service (AWS S3) <awss3>` make
+use of :meth:`oracledb.registerConfigurationProviderHook()`. These plugins use
+the information found in a connection method's ``connectString`` property
+which allows node-oracledb to access the required information from the
+configuration provider, and connect to Oracle Database with this information.
+For the complete plugin implementation, see the respective folders of the
 configuration providers in the `plugins/configProviders <https://github.com/
 oracle/node-oracledb/tree/main/plugins/configProviders>`__ directory of the
 node-oracledb package. Also, you can define your own plugins for centralized
@@ -3179,7 +3907,7 @@ instance restarts, unless explicitly stopped with the
 
     EXECUTE DBMS_CONNECTION_POOL.STOP_POOL()
 
-Oracle Database version 23 allows a ``DRAINTIME`` argument to be passed to
+Oracle Database 26ai allows a ``DRAINTIME`` argument to be passed to
 ``STOP_POOL()``, indicating that the pool will only be closed after the
 specified time. This allows in-progress application work to continue. A
 draintime value of *0* can be used to immediately close the pool. See the
@@ -3498,9 +4226,9 @@ not need to explicitly acquire, or release, connections to be able use a DRCP
 or PRCP pool.
 
 Implicit connection pooling is available in node-oracledb Thin and
-:ref:`Thick <enablingthick>` modes. It requires Oracle Database version 23 or
-later. Node-oracledb Thick mode additionally requires Oracle Client version 23
-or later libraries. The Thin mode works with implicit connection pooling from
+:ref:`Thick <enablingthick>` modes. It requires Oracle Database 26ai or later.
+Node-oracledb Thick mode additionally requires Oracle Client version 23 or
+later libraries. The Thin mode works with implicit connection pooling from
 node-oracledb 6.4 onwards.
 
 With implicit connection pooling, connections are internally acquired from the
@@ -4031,7 +4759,7 @@ Fast Application Notification (FAN)
 Users of `Oracle Database FAN <https://www.oracle.com/pls/topic/lookup?ctx=
 dblatest&id=GUID-EB0E1525-D3B3-469C-BE22-A569C76864A6>`__
 must connect to a FAN-enabled database service. The application should
-have :attr:`oracledb.events` is set to *true*. This value can also be
+have :attr:`oracledb.events` set to *true*. This value can also be
 changed via :ref:`Oracle Client Configuration <oraaccess>`.
 
 .. note::
@@ -4039,18 +4767,24 @@ changed via :ref:`Oracle Client Configuration <oraaccess>`.
     In this release, FAN is only supported in node-oracledb Thick mode. See
     :ref:`enablingthick`.
 
+FAN can be enabled for on-premises databases and `Oracle Autonomous AI
+Database on Dedicated Exadata Infrastructure (ADB-D) <https://docs.oracle.com/
+en/cloud/paas/autonomous-database/dedicated/adbaa/>`__. FAN is not supported in
+`Oracle Autonomous AI Database Serverless (ADB-S) <https://docs.oracle.com/en/
+cloud/paas/autonomous-database/serverless/adbsb/index.html>`__.
+
 FAN support is useful for planned and unplanned outages. It provides
 immediate notification to node-oracledb following outages related to the
-database, computers, and networks. Without FAN, node-oracledb can hang
+database, database servers, and networks. Without FAN, node-oracledb can hang
 until a TCP timeout occurs and a network error is returned, which might
 be several minutes.
 
-FAN allows node-oracledb to provide high availability features without
-the application being aware of an outage. Unused, idle connections in a
-connection pool will be automatically cleaned up. A future
-``pool.getConnection()`` call will establish a fresh connection to a
-surviving database instance without the application being aware of any
-service disruption.
+FAN allows node-oracledb to provide high availability features without the
+application being aware of an outage or upcoming planned maintenance. Unused,
+idle connections in a :ref:`connection pool <connpooling>` will be
+automatically cleaned up. A future :meth:`pool.getConnection()` call will
+establish a fresh connection to a surviving database instance without the
+application being aware of any service disruption.
 
 To handle errors that affect active connections, you can add application
 logic to re-connect (this will connect to a surviving database instance)
@@ -4058,17 +4792,16 @@ and replay application logic without having to return an error to the
 application user. Alternatively, use :ref:`Application
 Continuity <appcontinuity>`.
 
-FAN benefits users of Oracle Database’s clustering technology (:ref:`Oracle
-RAC <connectionrac>`) because connections to surviving database
-instances can be immediately made. Users of Oracle’s Data Guard with a
-broker will get FAN events generated when the standby database goes
-online. Standalone databases will send FAN events when the database
+FAN benefits users of Oracle Database’s clustering technology :ref:`Oracle
+RAC <connectionrac>` because notifications are sent when a surviving database
+instance is up and ready to accept new connections. Users of Oracle's Data
+Guard with a broker will get FAN events generated when the standby database
+goes online. Standalone databases will send FAN events when the database
 restarts.
 
-For a more information on FAN see the `technical paper on Fast
-Application Notification <https://www.oracle.com/technetwork/database/options
-/clustering/applicationcontinuity/learnmore/fastapplicationnotification12c-
-2538999.pdf>`__.
+For a more information on FAN see the `technical paper on Fast Application
+Notification <https://www.oracle.com/technetwork/database/options/clustering/
+overview/fastapplicationnotification12c-2980342.pdf>`__.
 
 .. _connectionrlb:
 
@@ -4092,12 +4825,12 @@ requests across RAC instances.
 
 For a more information on RLB, see the `technical paper on Fast Application
 Notification <https://www.oracle.com/technetwork/database/options/clustering/
-applicationcontinuity/learnmore/fastapplicationnotification12c-2538999.pdf>`__.
+overview/fastapplicationnotification12c-2980342.pdf>`__.
 
 .. _appcontinuity:
 
-Application Continuity
-----------------------
+Application Continuity and Transparent Application Continuity
+-------------------------------------------------------------
 
 Node-oracledb OLTP applications can take advantage of continuous
 availability with the Oracle Database features Application Continuity (AC)
@@ -4119,8 +4852,9 @@ Applications Using Autonomous Database - Dedicated <https://www.oracle.com
 /technetwork/database/options/clustering/applicationcontinuity/continuous-
 service-for-apps-on-atpd-5486113.pdf>`__.
 
-When AC or TAC are configured on the database service, they are transparently
-available to node-oracledb applications.
+When AC or TAC is configured on the database service, node-oracledb
+applications can rely on Application Continuity to orchestrate recovery
+following an unplanned outage.
 
 .. _tg:
 
@@ -4131,8 +4865,7 @@ From version 6.9 onwards, node-oracledb supports `Transaction Guard
 <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-F7E968E4-EE8F-
 4563-91F3-CD44B5D2E747>`__ which enables Node.js applications to verify the
 success or failure of the last transaction in the event of an unplanned
-outage. This feature requires Oracle Database 12.1 or later. For node-oracledb
-Thick mode, Oracle Client 12.1 or later is additionally required.
+outage. This feature requires Oracle Database 12.1 or later.
 
 Using Transaction Guard helps to
 
@@ -4143,10 +4876,18 @@ See `Oracle Database Development Guide <https://www.oracle.com/pls/topic/
 lookup?ctx=dblatest&id=GUID-6C5880E5-C45F-4858-A069-A28BB25FD1DB>`__ for more
 information about using Transaction Guard.
 
+.. important::
+
+    If your application connects to an AC or TAC-enabled service, then do not
+    use Transaction Guard explicitly. AC, TAC, or TAF already handles the
+    commit outcome and replay. Use TG only when you cannot enable AC, TAC, or
+    TAF but still need commit outcome certainty after failures.
+
 When an error occurs during a commit, the Node.js application can acquire the
-logical transaction ID (``ltxid``) from the connection and then call a
-procedure to determine the outcome of the commit for this logical transaction
-ID.
+logical transaction ID (``ltxid``) from the terminated connection and then
+call a procedure to determine the outcome of the commit for this logical
+transaction ID. Ensure that you retrieve ``ltxid`` before the transaction
+fails and before a new connection is acquired.
 
 To use Transaction Guard in node-oracledb in a single-instance database,
 perform the following steps:
@@ -4208,7 +4949,8 @@ In the Node.js application code:
   not, do not proceed with Transaction Guard.
 
 - Use the connection attribute :attr:`connection.ltxid` to find the
-  logical transaction ID.
+  logical transaction ID from the failed connection. The ``ltxid`` attribute
+  must be retrieved before the transaction fails.
 
 - Call the `DBMS_APP_CONT.GET_LTXID_OUTCOME <https://www.oracle.com/pls/topic/
   lookup?ctx=dblatest&id=GUID-03CEB530-D3A5-40B1-87C8-5BF1BB5D5D54>`__ PL/SQL
@@ -4216,7 +4958,7 @@ In the Node.js application code:
   indicating if the last transaction was committed and whether the last
   call was completed successfully or not.
 
-- Take any necessary action to re-do uncommitted work.
+- Take any necessary action to redo uncommitted work.
 
 See `transactionguard.js <https://github.com/oracle/node-oracledb/tree/main/
 examples/transactionguard.js>`__ for an example of using Transaction Guard.
@@ -4266,13 +5008,12 @@ To limit the amount of time taken to execute statements on connections:
   id=GUID-4A19D81A-75F0-448E-B271-24E5187B5909>`__ and `SQLNET.SEND_TIMEOUT
   <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-48547756-9C0B
   -4D14-BE85-E7ADDD1A3A66>`__ in a ``sqlnet.ora`` file. Or you can use the
-  :attr:`connection.callTimeout` attribute which is available when
-  node-oracledb uses Oracle Client libraries version 18, or later. The
-  necessary out-of-band break setting is automatically configured when using
-  Oracle Client 19 and Oracle Database 19, or later. With older Oracle
-  versions on systems that drop (or in-line) out-of-band breaks, you may need
-  to add `DISABLE_OOB=ON <https://www.oracle.com/pls/topic/lookup?ctx=dblatest
-  &id=GUID-42E939DC-EF37-49A0-B4F0-14158F0E55FD>`__ to a ``sqlnet.ora`` file.
+  :attr:`connection.callTimeout` attribute. The necessary out-of-band break
+  setting is automatically configured when using Oracle Client 19 and Oracle
+  Database 19, or later. With older Oracle versions on systems that drop
+  (or in-line) out-of-band breaks, you may need to add `DISABLE_OOB=ON
+  <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=GUID-42E939DC-EF37
+  -49A0-B4F0-14158F0E55FD>`__ to a ``sqlnet.ora`` file.
 
 The :attr:`connection.callTimeout` attribute is a millisecond timeout for
 executing database calls on a connection. The ``connection.callTimeout``
@@ -4827,8 +5568,7 @@ to the application.
 
 Sharding is configured in Oracle Database, see the `Oracle Globally
 Distributed Database <https://www.oracle.com/pls/topic/lookup?ctx=dblatest&id=
-SHARD>`__ manual. It requires Oracle Database and Oracle Client libraries
-12.2, or later.
+SHARD>`__ manual. It requires Oracle Database 12.2, or later.
 
 .. note::
 
@@ -4847,8 +5587,7 @@ then further partitioned by a sharding key.
 
 When creating a :ref:`connection pool <poolclass>`, the property
 :attr:`~oracledb.poolMaxPerShard` can be set. This is used to balance
-connections in the pool equally across shards. It requires Oracle Client
-libraries 18.3 or later.
+connections in the pool equally across shards.
 
 When connected to a shard, queries only returns data from that shard.
 For queries that need to access data from multiple shards, connections

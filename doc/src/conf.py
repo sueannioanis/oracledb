@@ -35,7 +35,7 @@ root_doc = master_doc = 'index'
 
 # General substitutions.
 project = 'node-oracledb'
-copyright = u'2015, 2025, Oracle and/or its affiliates'
+copyright = u'2015, 2026, Oracle and/or its affiliates'
 author = 'Oracle'
 
 # The default replacements for |version| and |release|, also used in various
@@ -46,8 +46,8 @@ author = 'Oracle'
 # from the other)
 #
 # The short X.Y version.
-version = '6.10'
-release = '6.10.0'
+version = '7.0'
+release = '7.0.0'
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:

@@ -1,4 +1,4 @@
-/* Copyright (c) 2025, Oracle and/or its affiliates. */
+/* Copyright (c) 2025, 2026, Oracle and/or its affiliates. */
 
 /******************************************************************************
  *
@@ -914,7 +914,7 @@ describe('312. dataTypeIntervalDS.js', function() {
       [{ dir: oracledb.BIND_IN, type: oracledb.DB_TYPE_INTERVAL_DS, val: interval }]
     );
     assert.deepStrictEqual(result.rows[0][0],
-      new oracledb.IntervalDS({ days: 0, fseconds: 1000000000, hours: 25, minutes: 70, seconds: 70 }));
+      new oracledb.IntervalDS({ days: 1, fseconds: 1000000000, hours: 2, minutes: 11, seconds: 10 }));
   }); // 312.48
 
   it('312.49 - undefined/null in constructor attributes', function() {
@@ -971,31 +971,31 @@ describe('312. dataTypeIntervalDS.js', function() {
   }); // 312.52
 
   it('312.53 - interval sorting in queries', async function() {
-    // Test ORDER BY with IntervalDS column
-    await conn.execute(`
-      CREATE TABLE IntervalDSSortTest (
+    const TABLE = 'IntervalDSSortTest';
+    const createSql = `
+      CREATE TABLE ${TABLE} (
         Id NUMBER,
         IntervalCol INTERVAL DAY TO SECOND
-      )
-    `);
+      )`;
+    // Test ORDER BY with IntervalDS column
+    await testsUtil.createTable(conn, TABLE, createSql);
 
-    await conn.executeMany(`
-      INSERT INTO IntervalDSSortTest VALUES (:1, TO_DSINTERVAL(:2))
-    `, [
-      [1, '1 06:00:00'],
-      [2, '0 12:30:00'],
-      [3, '2 00:00:00']
-    ]);
+    await conn.executeMany(`INSERT INTO ${TABLE} VALUES (:1, TO_DSINTERVAL(:2))`,
+      [
+        [1, '1 06:00:00'],
+        [2, '0 12:30:00'],
+        [3, '2 00:00:00']
+      ]);
 
     const result = await conn.execute(`
-      SELECT Id FROM IntervalDSSortTest ORDER BY IntervalCol
+      SELECT Id FROM ${TABLE} ORDER BY IntervalCol
     `);
     assert.deepStrictEqual(
       result.rows.map(row => row[0]),
       [2, 1, 3] // Expected order: 12h30m, 1d6h, 2d
     );
 
-    await testsUtil.dropTable(conn, 'IntervalDSSortTest');
+    await testsUtil.dropTable(conn, TABLE);
   }); // 312.53
 
   it('312.54 - interval arithmetic with multiple operations', async function() {
@@ -1019,4 +1019,36 @@ describe('312. dataTypeIntervalDS.js', function() {
       new oracledb.IntervalDS({ days: 6, hours: 18, minutes: 46, seconds: 15 })
     );
   }); // 312.54
+
+  it('312.55 - validate INTERVAL DS lower bound negative values', async function() {
+    const result = await conn.execute(`SELECT TO_DSINTERVAL('-9999999 00:00:00') FROM DUAL`);
+    assert.deepStrictEqual(result.rows[0][0], new oracledb.IntervalDS({ days: -9999999, hours: 0, minutes: 0, seconds: 0, fseconds: 0 }));
+  });  // 312.55
+
+  it('312.56 - validate INTERVAL DS with maximum valid time components', async function() {
+    const result = await conn.execute(`SELECT TO_DSINTERVAL('0 23:59:59.999999999') FROM DUAL`);
+    assert.deepStrictEqual(result.rows[0][0], new oracledb.IntervalDS({
+      days: 0, hours: 23, minutes: 59, seconds: 59, fseconds: 999999999
+    }));
+  }); // 312.56
+
+  it('312.57 - reject invalid INTERVAL DS with minutes > 59', async function() {
+    await assert.rejects(
+      async () => await conn.execute(`SELECT TO_DSINTERVAL('1 10:70:00') FROM DUAL`),
+      /ORA-01851:/ // ORA-01851: minutes must be between 0 and 59
+    );
+  }); // 312.57
+
+  it('312.58 - reject invalid INTERVAL DS with negative fractional seconds beyond range', async function() {
+    await assert.rejects(
+      async () => await conn.execute(`SELECT TO_DSINTERVAL('0 00:00:-1.000000001') FROM DUAL`),
+      /ORA-01867:/ // ORA-01867: the interval is invalid
+    );
+  }); // 312.58
+
+  it('312.59 - INTERVAL DS precision rounding edge case', async function() {
+    const result = await conn.execute(`SELECT TO_DSINTERVAL('0 00:00:59.999999999') FROM DUAL`);
+    assert.deepStrictEqual(result.rows[0][0],
+      new oracledb.IntervalDS({ seconds: 59, fseconds: 999999999 }));
+  }); // 312.59
 });
